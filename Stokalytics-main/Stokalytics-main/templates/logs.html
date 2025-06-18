@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Session Logs</h1>
+
+  <div class="button-row">
+    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+
+    <form method="POST" action="{{ url_for('file_upload') }}" enctype="multipart/form-data" style="display: inline;">
+      <div style="display: inline-block;">
+        <label for="fileInput" class="btn" style="cursor: pointer;">Import Data</label>
+        <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.txt" style="display: none;" onchange="this.form.submit()">
+      </div>
+    </form>
+
+    <form method="POST" action="{{ url_for('clear_logs') }}" onsubmit="return confirm('Are you sure you want to delete all session logs?');">
+      <button type="submit" class="btn btn-outline-red">Clear All Logs</button>
+    </form>
+  </div>
+
+  <!-- Combined layout using flexbox -->
+  <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+
+    <!-- Session data table -->
+    <div class="table-main">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Location</th>
+            <th>Type</th>
+            <th>Stakes</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>$ In</th>
+            <th>$ Out</th>
+            <th>Comps In</th>
+            <th>Comps Out</th>
+            <th>Tips</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in sessions %}
+          <tr>
+            <td class="{% if not session.date %}empty{% endif %}">{{ session.date.strftime('%m/%d/%Y') if session.date else '—' }}</td>
+            <td class="{% if not session.location %}empty{% endif %}">{{ session.location or '—' }}</td>
+            <td class="{% if not session.type %}empty{% endif %}">{{ session.type or '—' }}</td>
+            <td class="{% if not session.stakes %}empty{% endif %}">{{ session.stakes or '—' }}</td>
+            <td class="{% if not session.time_in %}empty{% endif %}">{{ session.time_in.strftime('%I:%M %p') if session.time_in else '—' }}</td>
+            <td class="{% if not session.time_out %}empty{% endif %}">{{ session.time_out.strftime('%I:%M %p') if session.time_out else '—' }}</td>
+            <td>{{ "$%.2f"|format(session.money_in) if session.money_in is not none else '—' }}</td>
+            <td>{{ "$%.2f"|format(session.money_out) if session.money_out is not none else '—' }}</td>
+            <td>{{ "$%.2f"|format(session.comps_in) if session.comps_in is not none else '—' }}</td>
+            <td>{{ "$%.2f"|format(session.comps_out) if session.comps_out is not none else '—' }}</td>
+            <td>{{ "$%.2f"|format(session.tips) if session.tips is not none else '—' }}</td>
+
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Performance stats table -->
+    <div class="table-stats">
+      <table class="table=stats
+      ">
+        <thead>
+          <tr>
+            <th>±</th>
+            <th>Hrs</th>
+            <th>/hr</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in sessions %}
+          {% set profit = (session.money_out or 0) - (session.money_in or 0) %}
+          {% set time_in = session.time_in %}
+          {% set time_out = session.time_out %}
+          {% set duration = ((datetime.combine(session.date, time_out) - datetime.combine(session.date, time_in)).total_seconds() / 3600) if time_in and time_out else None %}
+          {% set hourly = (profit / duration) if duration else None %}
+          {% set profit_class = 'positive' if profit is not none and profit > 0 else 'negative' if profit is not none and profit < 0 else '' %}
+          {% set hourly_class = 'positive' if hourly is not none and hourly > 0 else 'negative' if hourly is not none and hourly < 0 else '' %}
+          <tr>
+            <td class="{{ profit_class }}">
+              {{ "%.2f"|format(profit) if profit is not none else '—' }}
+            </td>
+            <td>
+              {{ "%.1f"|format(duration) if duration is not none else '—' }}
+            </td>
+            <td class="{{ hourly_class }}">
+              {{ "%.2f"|format(hourly) if hourly is not none else '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

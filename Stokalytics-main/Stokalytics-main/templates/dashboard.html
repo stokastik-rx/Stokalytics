@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Dashboard</h1>
+
+  <div class="button-row">
+    <button class="btn btn-outline-green" onclick="toggleSessionForm()">New Session</button>
+
+    <a href="{{ url_for('view_logs') }}" class="btn">Banking</a>
+    <a href="{{ url_for('view_logs') }}" class="btn">View Logs</a>
+  </div>
+
+  <!-- Collapsible session form -->
+  <div id="sessionForm" class="session-form hidden">
+    <form method="POST" action="/add_session">
+      <div class="form-grid">
+        <input type="date" name="date" placeholder="Date" required>
+        <input type="text" name="location" placeholder="Location" required>
+        <input type="text" name="type" placeholder="Type" required>
+        <input type="text" name="stakes" placeholder="Stakes" required>
+        <input type="time" name="time_in" placeholder="Time In">
+        <input type="time" name="time_out" placeholder="Time Out">
+        <input type="number" name="money_in" placeholder="Money In" step="0.01">
+        <input type="number" name="money_out" placeholder="Money Out" step="0.01">
+        <input type="number" name="comps_in" placeholder="Comps In" step="0.01">
+        <input type="number" name="comps_out" placeholder="Comps Out" step="0.01">
+        <input type="number" name="tips" placeholder="Tips" step="0.01">
+      </div>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+  </div>
+
+  
+  <!-- Profit/Loss Chart -->
+<div class="chart-container" style="max-width: 600px; margin: 2rem auto;">
+  <div style="text-align: center; font-family: inherit; font-weight: 600; font-size: 1rem; background-color: #000; color: #00ff99; padding: 0.25rem 0.5rem; border: 2px solid #00ff99; border-radius: 6px; width: fit-content; margin: 0 auto 0.5rem auto;">
+    Overall PnL
+  </div>
+  <canvas id="profitChart" style="max-height: 300px;"></canvas>
+</div>
+
+
+<!-- Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Pass data from Flask to JS -->
+
+<script type="text/javascript">
+  const chartData = JSON.parse('{{ chart_data | tojson | safe }}');
+</script>
+
+
+
+<!-- Custom chart rendering -->
+<script src="{{ url_for('static', filename='chart.js') }}"></script>
+
+<script>
+  function toggleSessionForm() {
+    const form = document.getElementById('sessionForm');
+    form.classList.toggle('hidden');
+  }
+</script>
+{% endblock %}
