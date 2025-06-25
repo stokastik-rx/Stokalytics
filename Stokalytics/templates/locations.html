@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Casino Locations</h1>
+
+  <!-- Add New Location Button -->
+  <div class="button-row">
+    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+    <button class="btn btn-outline-green" onclick="toggleLocationForm()">+ New Location</button>
+  </div>
+
+  <!-- Hidden Location Form -->
+  <div id="locationForm" class="session-form hidden">
+    <form method="POST" action="{{ url_for('add_location') }}">
+      <div class="form-grid">
+        <input type="text" name="name" placeholder="Location Name" required>
+        <input type="color" name="color" value="#00ff99" style="width: 110px;">
+      </div>
+      <button type="submit" class="btn">Save Location</button>
+    </form>
+  </div>
+
+  <!-- Locations List -->
+  <div style="margin-top: 2rem;">
+    {% for location in locations %}
+    <div style="border: 1px solid #333; border-left: 6px solid {{ location.color }}; padding: 1rem; margin-bottom: 1rem;">
+      <strong style="font-size: 1.1rem;">{{ location.name }}</strong>
+      <form method="POST" action="{{ url_for('update_location_note', location_id=location.id) }}">
+        <textarea name="note" rows="3" placeholder="Notes..." style="width: 100%; background-color: #111; color: #fff; border: 1px solid #444; font-family: monospace; margin-top: 0.5rem;">{{ location.note }}</textarea>
+        <button type="submit" class="btn btn-outline-green" style="margin-top: 0.5rem;">Save Note</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function toggleLocationForm() {
+  const form = document.getElementById('locationForm');
+  form.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

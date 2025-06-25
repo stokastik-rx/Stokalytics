@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Ledger Overview</h1>
+  <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+
+  <table style="width: 100%; margin-top: 1rem; border-collapse: collapse; font-family: 'JetBrains Mono', monospace;">
+    <thead>
+      <tr style="background-color: #111; color: #00ff99;">
+        <th style="padding: 0.5rem; border-bottom: 1px solid #333;">Date</th>
+        <th style="padding: 0.5rem; border-bottom: 1px solid #333;">Account</th>
+        <th style="padding: 0.5rem; border-bottom: 1px solid #333;">Withdrawal</th>
+        <th style="padding: 0.5rem; border-bottom: 1px solid #333;">Deposit</th>
+        <th style="padding: 0.5rem; border-bottom: 1px solid #333;">Venture</th>
+        <th style="padding: 0.5rem; border-bottom: 1px solid #333;">Net Change</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in ledger %}
+      <tr style="color: #ccc;">
+        <td style="padding: 0.5rem; border-bottom: 1px solid #222;">{{ entry.date }}</td>
+        <td style="padding: 0.5rem; border-bottom: 1px solid #222;">{{ entry.account }}</td>
+        <td style="padding: 0.5rem; border-bottom: 1px solid #222;">{{ entry.withdrawal }}</td>
+        <td style="padding: 0.5rem; border-bottom: 1px solid #222;">{{ entry.deposit }}</td>
+        <td style="padding: 0.5rem; border-bottom: 1px solid #222;">{{ entry.venture }}</td>
+        <td style="padding: 0.5rem; border-bottom: 1px solid #222;">
+          {{ (entry.withdrawal or 0) - (entry.deposit or 0) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

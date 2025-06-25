@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <h1>Comps</h1>
+
+  <!-- Button Row -->
+  <div class="button-row">
+    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+    <button class="btn btn-outline-green" onclick="toggleCompForm()">Log Self Comp</button>
+    <button class="btn btn-outline-green" onclick="toggleGiftForm()">Log Gift</button>
+    <a href="{{ url_for('dashboard') }}" class="btn">Edit</a>
+  </div>
+
+  <!-- Forms -->
+  <div id="compForm" class="session-form hidden" style="margin-top: 1rem;">
+    <form method="POST" action="/log_comp">
+      <div class="form-grid">
+        <input type="date" name="date" required>
+        <input type="text" name="location" placeholder="Location" required>
+        <select name="type" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
+          <option value="Asset">Asset</option>
+          <option value="Transient">Transient</option>
+        </select>
+        <input type="number" name="value" placeholder="Value" required step="0.01">
+        <input type="text" name="item" placeholder="Item" required style="grid-column: span 2; width: 94.5%;">
+      </div>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+  </div>
+
+  <div id="giftForm" class="session-form hidden" style="margin-top: 1rem;">
+    <form method="POST" action="/log_gift">
+      <div class="form-grid">
+        <input type="date" name="date" required>
+        <input type="text" name="location" placeholder="Location" required>
+        <select name="type" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
+          <option value="Asset">Asset</option>
+          <option value="Transient">Transient</option>
+        </select>
+        <input type="number" name="value" placeholder="Value" required step="0.01">
+        <input type="text" name="item" placeholder="Item" required style="grid-column: span 2; width: 94.5%;">
+      </div>
+      <button type="submit" class="btn">Submit</button>
+    </form>
+  </div>
+
+  <!-- Layout -->
+  <div class="layout" style="margin-top: 2rem;">
+    <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px;">
+      <h3 style="color: #ffffff; font-family: Consolas, monospace;">Lifetime Comps</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        {% for comp in comp_summary %}
+          <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">
+            {{ comp.type }} — ${{ comp.total | round(2) }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="main-content">
+      <div class="chart-container" style="padding: 1rem; background-color: #111; border-radius: 10px; margin-top: 1rem;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Location</th>
+              <th>Type</th>
+              <th>Item</th>
+              <th>Value</th>
+              <th>Source</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for comp in comp_records %}
+            <tr>
+              <td>{{ comp.date.strftime('%Y-%m-%d') if comp.date else '—' }}</td>
+              <td>{{ comp.location }}</td>
+              <td>{{ comp.type }}</td>
+              <td>{{ comp.item }}</td>
+              <td>${{ '%.2f'|format(comp.value) }}</td>
+              <td>{{ comp.source }}</td>
+              <td>
+                <form method="POST" action="/delete_comp" style="margin: 0;">
+                  <input type="hidden" name="id" value="{{ comp.id }}">
+                  <input type="hidden" name="source" value="{{ comp.source }}">
+                  <button type="submit" class="btn btn-outline-red" style="padding: 2px 8px;">X</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JS -->
+<script>
+  function toggleCompForm() {
+    document.getElementById('compForm').classList.toggle('hidden');
+  }
+  function toggleGiftForm() {
+    document.getElementById('giftForm').classList.toggle('hidden');
+  }
+</script>
+{% endblock %}
