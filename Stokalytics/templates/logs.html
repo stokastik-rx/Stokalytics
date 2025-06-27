@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <h1>Session Logs</h1>
+
+  <!-- Top Row -->
+  <div class="button-row">
+    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+
+    <form method="POST" action="{{ url_for('file_upload') }}" enctype="multipart/form-data" style="display: inline;">
+      <label for="fileInput" class="btn" style="cursor: pointer;">Import Data</label>
+      <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.txt" style="display: none;" onchange="this.form.submit()">
+    </form>
+
+    <button type="button" class="btn" id="toggleEditBtn" onclick="toggleEditMode()">Edit</button>
+
+    <form method="POST" action="{{ url_for('clear_logs') }}" onsubmit="return confirm('Are you sure?');">
+      <button type="submit" class="btn btn-outline-red">Clear All Logs</button>
+    </form>
+  </div>
+
+  <!-- Tables Layout -->
+  <div style="display: flex; justify-content: center; gap: 2rem; overflow-x: auto; max-width: 100%;">
+
+
+    <!-- Session Table -->
+    <div class="table-main">
+      <form id="editForm" method="POST" action="{{ url_for('update_logs') }}">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 100px;">Date</th>
+              <th style="width: 140px;">Location</th>
+              <th style="width: 100px;">Type</th>
+              <th style="width: 100px;">Stakes</th>
+              <th style="width: 80px;">Time In</th>
+              <th style="width: 80px;">Time Out</th>
+              <th style="width: 90px;">$ In</th>
+              <th style="width: 90px;">$ Out</th>
+              <th style="width: 100px;">Comps In</th>
+              <th style="width: 100px;">Comps Out</th>
+              <th style="width: 80px;">Tips</th>
+              <th class="edit-only" style="width: 48px; display: none;">Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in sessions %}
+            <tr>
+              <input type="hidden" name="id_{{ loop.index0 }}" value="{{ session.id }}">
+              {% set fields = ['date', 'location', 'type', 'stakes', 'time_in', 'time_out', 'money_in', 'money_out', 'comps_in', 'comps_out', 'tips'] %}
+              {% for field in fields %}
+              <td style="white-space: nowrap; vertical-align: middle;">
+                <span class="view-only">
+                  {% if field == 'date' %}
+                    {{ session.date.strftime('%m/%d/%Y') if session.date else '—' }}
+                  {% elif field in ['time_in', 'time_out'] %}
+                    {{ session[field].strftime('%I:%M %p') if session[field] else '—' }}
+                  {% elif field in ['money_in', 'money_out', 'comps_in', 'comps_out', 'tips'] %}
+                    {{ "$%.2f"|format(session[field]) if session[field] is not none else '—' }}
+                  {% else %}
+                    {{ session[field] or '—' }}
+                  {% endif %}
+                </span>
+                <input class="edit-only" style="display: none; width: 100%; box-sizing: border-box; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.25rem; height: 32px;" 
+                       type="{% if 'money' in field or 'comps' in field or field == 'tips' %}number{% elif 'time' in field %}time{% elif field == 'date' %}date{% else %}text{% endif %}"
+                       step="0.01"
+                       name="{{ field }}_{{ loop.index0 }}"
+                       value="{{ session[field] }}">
+              </td>
+              {% endfor %}
+              <td class="edit-only" style="display: none; width:48px; text-align: center;">
+                <button class="btn btn-outline-red" formaction="{{ url_for('delete_session', id=session.id) }}" formmethod="POST" onclick="return confirm('Delete this session?');">X</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <button id="saveBtn" class="btn btn-outline-green edit-only" type="submit" style="display: none; margin-top: 1rem;">Save Changes</button>
+      </form>
+    </div>
+
+    <!-- Performance Stats Table -->
+<div class="table-stats">
+      <table class="table=stats
+      ">
+        <thead>
+          <tr>
+            <th>±</th>
+            <th>Hrs</th>
+            <th>/hr</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in sessions %}
+          {% set profit = (session.money_out or 0) - (session.money_in or 0) %}
+          {% set time_in = session.time_in %}
+          {% set time_out = session.time_out %}
+          {% set duration = ((datetime.combine(session.date, time_out) - datetime.combine(session.date, time_in)).total_seconds() / 3600) if time_in and time_out else None %}
+          {% set hourly = (profit / duration) if duration else None %}
+          {% set profit_class = 'positive' if profit is not none and profit > 0 else 'negative' if profit is not none and profit < 0 else '' %}
+          {% set hourly_class = 'positive' if hourly is not none and hourly > 0 else 'negative' if hourly is not none and hourly < 0 else '' %}
+          <tr>
+            <td class="{{ profit_class }}">
+              {{ "%.2f"|format(profit) if profit is not none else '—' }}
+            </td>
+            <td>
+              {{ "%.1f"|format(duration) if duration is not none else '—' }}
+            </td>
+            <td class="{{ hourly_class }}">
+              {{ "%.2f"|format(hourly) if hourly is not none else '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- JS -->
+  <script>
+    function toggleEditMode() {
+      const editElems = document.querySelectorAll('.edit-only');
+      const viewElems = document.querySelectorAll('.view-only');
+      const toggleBtn = document.getElementById('toggleEditBtn');
+      const saveBtn = document.getElementById('saveBtn');
+
+      const enteringEdit = toggleBtn.innerText === 'Edit';
+      toggleBtn.innerText = enteringEdit ? 'Cancel' : 'Edit';
+      saveBtn.style.display = enteringEdit ? '' : 'none';
+
+      editElems.forEach(el => el.style.display = enteringEdit ? '' : 'none');
+      viewElems.forEach(el => el.style.display = enteringEdit ? 'none' : '');
+    }
+  </script>
+</div>
+{% endblock %}
