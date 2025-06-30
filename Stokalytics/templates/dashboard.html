@@ -14,51 +14,48 @@
   </div>
 
   <!-- Collapsible session form -->
-<div id="sessionForm" class="session-form hidden" style="margin-left:-0.60rem;">
-  <form method="POST" action="/add_session">
-    <div class="form-grid">
-      <div class="input-lock-container">
-        <input type="date" name="date" id="dateInput" required>
+  <div id="sessionForm" class="session-form hidden" style="margin-left:-0.60rem;">
+    <form method="POST" action="/add_session">
+      <div class="form-grid">
+        <div class="input-lock-container">
+          <input type="date" name="date" id="dateInput" required>
+        </div>
+
+        <div class="input-lock-container">
+          <input type="text" name="location" id="locationInput" placeholder="Location">
+          <button type="button" class="lock-btn" data-target="locationInput">🔒</button>
+        </div>
+
+        <div class="input-lock-container">
+          <input type="text" name="type" id="typeInput" placeholder="Type">
+          <button type="button" class="lock-btn" data-target="typeInput">🔒</button>
+        </div>
+
+        <div class="input-lock-container">
+          <input type="text" name="stakes" id="stakesInput" placeholder="Stakes">
+          <button type="button" class="lock-btn" data-target="stakesInput">🔒</button>
+        </div>
+
+        <input type="time" name="time_in" placeholder="Time In">
+        <input type="time" name="time_out" placeholder="Time Out">
+        <input type="number" name="money_in" placeholder="Money In" step="0.01">
+        <input type="number" name="money_out" placeholder="Money Out" step="0.01">
+
+        <div class="input-lock-container">
+          <input type="number" name="comps_in" id="compsInInput" placeholder="Comps In" step="0.01">
+          <button type="button" class="lock-btn" data-target="compsInInput">🔒</button>
+        </div>
+
+        <div class="input-lock-container">
+          <input type="number" name="comps_out" id="compsOutInput" placeholder="Comps Out" step="0.01">
+          <button type="button" class="lock-btn" data-target="compsOutInput">🔒</button>
+        </div>
+
+        <input type="number" name="tips" placeholder="Tips" step="0.01">
       </div>
-
-      <div class="input-lock-container">
-        <input type="text" name="location" id="locationInput" placeholder="Location">
-        <button type="button" class="lock-btn" data-target="locationInput">🔒</button>
-      </div>
-
-      <div class="input-lock-container">
-        <input type="text" name="type" id="typeInput" placeholder="Type">
-        <button type="button" class="lock-btn" data-target="typeInput">🔒</button>
-      </div>
-
-      <div class="input-lock-container">
-        <input type="text" name="stakes" id="stakesInput" placeholder="Stakes">
-        <button type="button" class="lock-btn" data-target="stakesInput">🔒</button>
-      </div>
-
-      <input type="time" name="time_in" placeholder="Time In">
-      <input type="time" name="time_out" placeholder="Time Out">
-      <input type="number" name="money_in" placeholder="Money In" step="0.01">
-      <input type="number" name="money_out" placeholder="Money Out" step="0.01">
-
-      <div class="input-lock-container">
-        <input type="number" name="comps_in" id="compsInInput" placeholder="Comps In" step="0.01">
-        <button type="button" class="lock-btn" data-target="compsInInput">🔒</button>
-      </div>
-
-      <div class="input-lock-container">
-        <input type="number" name="comps_out" id="compsOutInput" placeholder="Comps Out" step="0.01">
-        <button type="button" class="lock-btn" data-target="compsOutInput">🔒</button>
-      </div>
-
-      <input type="number" name="tips" placeholder="Tips" step="0.01">
-    </div>
-    <button type="submit" class="btn">Submit</button>
-  </form>
-</div>
-
-
-
+      <button type="submit" class="btn">Submit</button>
+    </form>
+  </div>
 
   <!-- Flex layout: sidebar + charts -->
   <div style="display: flex; margin-top: 2rem; gap: 2rem; align-items: flex-start;">
@@ -76,8 +73,16 @@
     <!-- Chart 1: Cumulative PnL -->
     <div class="chart-container" style="flex-grow: 1; max-width: 600px;">
       <div style="text-align: center; font-family: inherit; font-weight: 600; font-size: 1rem; background-color: #000; color: #00ff99; padding: 0.25rem 0.5rem; border: 2px solid #00ff99; border-radius: 6px; width: fit-content; margin: 0 auto 0.5rem auto;">
-        Cumulative Profit (PnL)
+        Cumulative Profit
       </div>
+
+      <div style="text-align: center; margin-bottom: 0.5rem;">
+        <label class="checkbox-label">
+          <input type="checkbox" id="tipsLineToggle" checked onchange="toggleTipsLineVisibility()">
+          Show PnL + Tips
+        </label>
+      </div>
+
       <canvas id="profitChart" style="max-height: 300px;"></canvas>
     </div>
 
@@ -90,81 +95,143 @@
     </div>
   </div>
 
-
-
-
-
   <!-- Chart.js and data bindings -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
-
   <script type="text/javascript">
-    const chartData = JSON.parse('{{ chart_data | tojson | safe }}');
-    const combinedBankrollData = JSON.parse('{{ combined_chart_data | tojson | safe }}');
-  </script>
+  const chartData = JSON.parse('{{ chart_data | tojson | safe }}');
+  const chartDataWithTips = JSON.parse('{{ chart_data_with_tips | tojson | safe }}');
+  const combinedBankrollData = JSON.parse('{{ combined_chart_data | tojson | safe }}'); <!-- ✅ REQUIRED -->
+</script>
 
-  <script src="{{ url_for('static', filename='chart.js') }}"></script>
+  <script>
+    const ctx = document.getElementById('profitChart').getContext('2d');
+
+    const profitChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'PnL',
+            data: chartData,
+            parsing: false,
+            borderColor: '#00ff99',
+            backgroundColor: '#00ff9966',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          },
+          {
+            label: 'PnL + Tips',
+            data: chartDataWithTips,
+            parsing: false,
+            borderColor: '#ffcc00',
+            backgroundColor: '#ffcc0033',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false,
+            labels: {
+              color: '#ffffff',
+              font: {
+                family: "'JetBrains Mono', monospace",
+                size: 12
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: $${context.parsed.y.toLocaleString()}`;
+              }
+            },
+            titleFont: { family: "'JetBrains Mono', monospace", size: 12, weight: '600' },
+            bodyFont: { family: "'JetBrains Mono', monospace", size: 12 }
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 }
+            },
+            grid: { color: '#333' }
+          },
+          y: {
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 },
+              callback: value => `$${value.toLocaleString()}`
+            },
+            grid: { color: '#333' }
+          }
+        }
+      }
+    });
+
+    function toggleTipsLineVisibility() {
+      const checkbox = document.getElementById('tipsLineToggle');
+      profitChart.data.datasets[1].hidden = !checkbox.checked;
+      profitChart.update();
+    }
+
+    window.profitChart = profitChart;
+  </script>
 
   <script>
     function toggleSessionForm() {
       const form = document.getElementById('sessionForm');
       form.classList.toggle('hidden');
-    }
-  </script>
 
- <script>
-  function toggleSessionForm() {
-    const form = document.getElementById('sessionForm');
-    form.classList.toggle('hidden');
-
-    if (!form.classList.contains('hidden')) {
-      // Set today's date by default
-      const dateField = document.getElementById('dateInput');
-      if (dateField) {
-        const today = new Date().toISOString().split('T')[0];
-        dateField.value = today;
-      }
-
-      // Restore locked values
-      document.querySelectorAll('.lock-btn').forEach(btn => {
-        const inputId = btn.dataset.target;
-        const input = document.getElementById(inputId);
-        const locked = localStorage.getItem(`${inputId}_locked`) === 'true';
-        const value = localStorage.getItem(`${inputId}_value`);
-
-        if (locked && value !== null) {
-          input.value = value;
+      if (!form.classList.contains('hidden')) {
+        const dateField = document.getElementById('dateInput');
+        if (dateField) {
+          const today = new Date().toISOString().split('T')[0];
+          dateField.value = today;
         }
 
-        btn.innerText = locked ? '🔒' : '🔓';
-      });
-    }
-  }
+        document.querySelectorAll('.lock-btn').forEach(btn => {
+          const inputId = btn.dataset.target;
+          const input = document.getElementById(inputId);
+          const locked = localStorage.getItem(`${inputId}_locked`) === 'true';
+          const value = localStorage.getItem(`${inputId}_value`);
 
-  // Lock toggle logic
-  document.querySelectorAll('.lock-btn').forEach(button => {
-    button.addEventListener('click', () => {
-      const targetId = button.dataset.target;
-      const input = document.getElementById(targetId);
-      const isLocked = localStorage.getItem(`${targetId}_locked`) === 'true';
+          if (locked && value !== null) {
+            input.value = value;
+          }
 
-      if (isLocked) {
-        localStorage.setItem(`${targetId}_locked`, 'false');
-        localStorage.removeItem(`${targetId}_value`);
-        button.innerText = '🔓';
-      } else {
-        localStorage.setItem(`${targetId}_locked`, 'true');
-        localStorage.setItem(`${targetId}_value`, input.value);
-        button.innerText = '🔒';
+          btn.innerText = locked ? '🔒' : '🔓';
+        });
       }
+    }
+
+    document.querySelectorAll('.lock-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const targetId = button.dataset.target;
+        const input = document.getElementById(targetId);
+        const isLocked = localStorage.getItem(`${targetId}_locked`) === 'true';
+
+        if (isLocked) {
+          localStorage.setItem(`${targetId}_locked`, 'false');
+          localStorage.removeItem(`${targetId}_value`);
+          button.innerText = '🔓';
+        } else {
+          localStorage.setItem(`${targetId}_locked`, 'true');
+          localStorage.setItem(`${targetId}_value`, input.value);
+          button.innerText = '🔒';
+        }
+      });
     });
-  });
-</script>
-
-
-
-
+  </script>
 </div>
 
 {% endblock %}
