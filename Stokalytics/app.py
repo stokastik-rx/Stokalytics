@@ -31,25 +31,33 @@ def dashboard():
     sessions = SessionRecord.query.order_by(SessionRecord.date, SessionRecord.time_in).all()
 
     cumulative_profit = 0
+    cumulative_profit_with_tips = 0
     cumulative_time = 0
     chart_point_map = {}
+    chart_point_map_with_tips = {}
 
     for s in sessions:
         money_in = s.money_in or 0
         money_out = s.money_out or 0
+        tips = s.tips or 0
         profit = money_out - money_in
+        profit_with_tips = profit + tips
+
         cumulative_profit += profit
+        cumulative_profit_with_tips += profit_with_tips
 
         if s.time_in and s.time_out:
             duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
         else:
             duration = 0
         cumulative_time += duration
-
         time_key = round(cumulative_time, 2)
+
         chart_point_map[time_key] = round(cumulative_profit, 2)
+        chart_point_map_with_tips[time_key] = round(cumulative_profit_with_tips, 2)
 
     chart_points = [{"x": x, "y": y} for x, y in sorted(chart_point_map.items())]
+    chart_points_with_tips = [{"x": x, "y": y} for x, y in sorted(chart_point_map_with_tips.items())]
 
     # === Sidebar filter: unique types ===
     unique_types = sorted(set(s.type for s in sessions if s.type))
@@ -70,12 +78,15 @@ def dashboard():
         for date_str, cum_val in sorted(date_to_cumulative.items())
     ]
 
+
     return render_template(
         'dashboard.html',
         chart_data=chart_points,
+        chart_data_with_tips=chart_points_with_tips,
         unique_types=unique_types,
         combined_chart_data=combined_chart_data
     )
+
 
 
 
