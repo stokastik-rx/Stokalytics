@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Login</h1>
+
+  <form method="POST" class="form-grid" style="max-width: 400px; display: flex; flex-direction: column; gap: 1rem;">
+    <input name="username" placeholder="Username" required class="input">
+    <input name="password" type="password" placeholder="Password" required class="input">
+    <button type="submit" class="btn btn-outline-green">Log In</button>
+  </form>
+
+  <p style="margin-top: 1rem;">Don’t have an account?
+    <a href="{{ url_for('signup') }}" class="link">Sign up here</a>.
+  </p>
+</div>
+{% endblock %}
