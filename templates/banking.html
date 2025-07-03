@@ -12,21 +12,22 @@
   </div>
 
   <!-- Forms -->
-  <div id="depositForm" class="session-form hidden" style="margin-left: 24.5rem;">
+  <div id="depositForm" class="session-form hidden" style="margin-left: 24.5rem; transform: scale(0.9); transform-origin: top left;">
+
     <form method="POST" action="{{ url_for('update_ledger') }}">
       <div class="form-grid" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <select name="venture" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
+        <select name="venture" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem; padding-right: 1.5rem;">
           {% for venture in unique_types %}
             <option value="{{ venture }}">{{ venture }}</option>
           {% endfor %}
         </select>
         <span style="color: #00ff99; font-size: 1.5rem;">→</span>
-        <select name="account" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
+        <select name="account" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem; padding-right: 1.5rem;">
           {% for bank in banks %}
             <option value="{{ bank.name }}">{{ bank.name }}</option>
           {% endfor %}
         </select>
-        <input type="number" name="deposit" step="0.01" required placeholder="Amount" style="width: 100%; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem; margin-top: 1rem;">
+        <input type="number" name="deposit" step="0.01" required placeholder="Amount" style="width: 50%; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem; margin-top: 1rem;">
         <input type="hidden" name="date" value="{{ datetime.utcnow().date() }}">
         <button type="submit" class="btn" style="margin-top: 1rem;">Submit</button>
       </div>

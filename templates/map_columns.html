@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Map Columns</h1>
+
+  <div style="display: flex; gap: 3rem; align-items: flex-start; flex-wrap: wrap;">
+
+    <!-- Column Mapping -->
+    <form method="POST" action="{{ url_for('confirm_mapping') }}" style="display: flex; flex-direction: column; gap: 1rem; min-width: 300px;">
+      {% for field in ['date', 'location', 'type', 'stakes', 'time_in', 'time_out', 'money_in', 'money_out', 'comps_in', 'comps_out', 'tips'] %}
+        <div style="display: flex; flex-direction: column;">
+          <label for="{{ field }}" style="color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+            {{ field.replace('_', ' ').title() }}:
+          </label>
+          <select name="{{ field }}" id="{{ field }}"
+                  style="background-color: #111; color: #fff; border: 1px solid #333;
+                         padding: 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+            <option value="">-- ignore --</option>
+            {% for col in columns %}
+              <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn" style="width: fit-content;">Import</button>
+    </form>
+
+    <!-- Sheet Preview -->
+    <div style="overflow-x: auto; max-width: 100%; flex: 1;">
+      <h3 style="color: #ccc; font-family: 'JetBrains Mono', monospace;">Sheet Preview</h3>
+      <table class="table" style="font-size: 13px; min-width: 600px;">
+        <thead>
+          <tr>
+            {% for col in preview[0].keys() %}
+              <th>{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview %}
+            <tr>
+              {% for value in row.values() %}
+                <td>{{ value }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

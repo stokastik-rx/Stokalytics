@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
@@ -197,42 +197,82 @@ def parse_time(value):
 @app.route('/file_upload', methods=['POST'])
 @login_required
 def file_upload():
-    file = request.files['file']
+    file = request.files.get('file')
+    if not file:
+        return "No file uploaded", 400
 
-    if file:
-        df = pd.read_excel(file, header=1)   # assumes row 2 is the actual header
-        df = df.iloc[:, 1:]                  # optional: remove first column
-        df.index = df.index + 1  # shift index to start from 1
+    try:
+        # Read the Excel file assuming header starts at row 2
+        df = pd.read_excel(file, header=0)
+        df = df.iloc[:, 1:]  # Optional: remove first unnamed column (index)
+        df.columns = df.columns.str.strip()  # Clean up headers
+        df.index = df.index + 1
+        print("First few rows:")
+        print(df.head())
+        print("Columns:", df.columns.tolist())
 
-        table_html = df.to_html(classes="table")
+        # Save dataframe in session for mapping confirmation
+        session['upload_df'] = df.to_json()
+        session['upload_filename'] = file.filename
+
+        preview_rows = df.head(5).to_dict(orient='records')
+
+
+        return render_template(
+            'map_columns.html', 
+            columns=list(df.columns),
+            preview=preview_rows
+        )
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"<pre>{str(e)}</pre>", 500  # returns error visibly on the page
+
+
+
+
+@app.route('/confirm_mapping', methods=['POST'])
+@login_required
+def confirm_mapping():
+    mapping = {field: request.form.get(field) for field in [
+        'date', 'location', 'type', 'stakes', 'time_in', 'time_out',
+        'money_in', 'money_out', 'comps_in', 'comps_out', 'tips'
+    ]}
+
+    try:
+        df = pd.read_json(session.get('upload_df'))
+
         for _, row in df.iterrows():
-            if pd.isna(row['Date']):
-                continue  # skip empty rows
+            if mapping['date'] and pd.isna(row[mapping['date']]):
+                continue
 
             try:
                 record = SessionRecord(
-                    date=pd.to_datetime(row['Date']).date() if pd.notna(row['Date']) else None,
-                    location=row['Location'],
-                    type=row['Type'],
-                    stakes=row['Stakes'],
-                    time_in=parse_time(row['Time In']),
-                    time_out=parse_time(row['Time Out']),
-                    money_in=float(row['Money In']) if pd.notna(row['Money In']) else 0,
-                    money_out=float(row['Money Out']) if pd.notna(row['Money Out']) else 0,
-                    comps_in=float(row['Comps In']) if pd.notna(row['Comps In']) else 0,
-                    comps_out=float(row['Comps Out']) if pd.notna(row['Comps Out']) else 0,
-                    tips=float(row['Tips']) if pd.notna(row['Tips']) else 0,
-                    user_id=current_user.id  # ✅ secure the record
+                    date=pd.to_datetime(row[mapping['date']]).date() if mapping['date'] else None,
+                    location=row.get(mapping['location']) if mapping['location'] else None,
+                    type=row.get(mapping['type']) if mapping['type'] else None,
+                    stakes=row.get(mapping['stakes']) if mapping['stakes'] else None,
+                    time_in=parse_time(row.get(mapping['time_in'])) if mapping['time_in'] else None,
+                    time_out=parse_time(row.get(mapping['time_out'])) if mapping['time_out'] else None,
+                    money_in=float(row.get(mapping['money_in'], 0)) if mapping['money_in'] else 0,
+                    money_out=float(row.get(mapping['money_out'], 0)) if mapping['money_out'] else 0,
+                    comps_in=float(row.get(mapping['comps_in'], 0)) if mapping['comps_in'] else 0,
+                    comps_out=float(row.get(mapping['comps_out'], 0)) if mapping['comps_out'] else 0,
+                    tips=float(row.get(mapping['tips'], 0)) if mapping['tips'] else 0,
+                    user_id=current_user.id
                 )
                 db.session.add(record)
-            except Exception as e:
-                print(f"Row error: {e}")  # optional: log bad rows
+            except Exception as row_error:
+                print("Row mapping error:", row_error)
 
         db.session.commit()
         sync_ledsess()
+        return redirect(url_for('view_logs'))
 
-        return render_template('upload.html', table=df.to_html(classes="table table-bordered"))
-
+    except Exception as e:
+        print("Mapping error:", e)
+        return "Error processing mapped data", 500
 
 
 
