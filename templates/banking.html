@@ -113,7 +113,7 @@
                 </select>
                 <button type="submit" class="btn btn-outline-green">Save</button>
               </form>
-              <form method="POST" action="{{ url_for('delete_ledger', ledger_id=entry.id) }}" style="margin-top: 0.25rem;">
+              <form method="POST" action="{{ url_for('update_ledger', ledger_id=entry.id) }}" style="margin-top: 0.25rem;">
                 <button type="submit" class="btn btn-outline-red" style="width: 100%;" onclick="return confirm('Delete this entry?')">Delete</button>
               </form>
             </li>
