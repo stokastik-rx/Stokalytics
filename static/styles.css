@@ -278,7 +278,7 @@ input[type="submit"] {
 
 .sidebar {
   width: 200px;
-  min-height: 100%;
+  min-height: 20%;
   background-color: #0d0d0d;
   border-right: 1px solid #222;
   padding: 1rem;
