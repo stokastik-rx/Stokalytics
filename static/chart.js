@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
       data: {
         datasets: [{
           label: '',
-          data: chartData,
+          data: [{ x: 0, y: 0 }, ...chartData],
+
           parsing: false,
           borderColor: '#00ff99',
           backgroundColor: '#00ff9966',
@@ -55,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
             title: {
               display: true,
               text: 'Hours',
+             
               color: '#aaa',
               font: { family: '"JetBrains Mono", monospace', size: 11 }
             },
@@ -94,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
       data: {
         datasets: [{
           label: 'Total Bankroll',
-          data: combinedBankrollData,
+          data: [{ x: combinedBankrollData[0].x, y: 0 }, ...combinedBankrollData],
           borderColor: '#66ccff',
           backgroundColor: '#66ccff66',
           tension: 0.3,
@@ -166,7 +168,19 @@ document.addEventListener('DOMContentLoaded', function () {
         data: {
           datasets: [{
             label: '',
-            data: data,
+            data: (() => {
+  if (!data.length) return [];
+  const first = data[0];
+
+  // Inject origin if not Match Play
+  if (venture !== 'Match Play') {
+    return [{ x: isDuration ? 0 : first.x, y: 0 }, ...data];
+  }
+
+  return data;
+})(),
+
+
             borderColor: color,
             backgroundColor: color + '66',
             tension: 0.3,
