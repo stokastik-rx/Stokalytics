@@ -151,15 +151,15 @@ document.addEventListener('DOMContentLoaded', function () {
       const isDuration = durationVentures.includes(venture);
 
       const wrapper = document.createElement('div');
-      wrapper.className = 'chart-container';
-      wrapper.style.flex = '1 1 30%';
-      wrapper.style.maxWidth = '459px';
+      wrapper.classList.add('chart', 'chart-narrow');
+
       wrapper.innerHTML = `
-        <div style="text-align:center; font-family:inherit; font-weight:600; font-size:1rem; background-color:#000; color:${color}; padding:0.25rem 0.5rem; border:2px solid ${color}; border-radius:6px; width:fit-content; margin:0 auto 0.5rem auto;">
+        <div class="chart-label" style="border-color: ${color}; color: ${color};">
           ${venture}
         </div>
-        <canvas style="max-height: 300px;"></canvas>
+        <canvas></canvas>
       `;
+
       const canvas = wrapper.querySelector('canvas');
       ventureContainer.appendChild(wrapper);
 

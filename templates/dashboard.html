@@ -54,7 +54,8 @@
   </div>
 
   <!-- Sidebar + All Charts (Top & Bottom) -->
-  <div style="display: flex; margin-top: 2rem; gap: 2rem; align-items: flex-start;">
+  <div class="main-content">
+
     
     <!-- Sidebar -->
     <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px;">
@@ -67,37 +68,24 @@
     </div>
 
     <!-- Right column: all charts -->
-    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2rem;">
-      
-      <!-- Top Row: Main Charts -->
-      <div style="display: flex; gap: 2rem;">
-        <!-- Chart 1: Cumulative PnL -->
-        <div class="chart-container" style="flex: 1;">
-          <div style="text-align: center; font-family: inherit; font-weight: 600; font-size: 1rem; background-color: #000; color: #00ff99; padding: 0.25rem 0.5rem; border: 2px solid #00ff99; border-radius: 6px; width: fit-content; margin: 0 auto 0.5rem auto;">
-            Cumulative Profit (PnL)
-          </div>
-          <canvas id="profitChart" style="max-height: 300px;"></canvas>
-        </div>
-
-        <!-- Chart 2: Total Bankroll by Date -->
-        <div class="chart-container" style="flex: 1;">
-          <div style="text-align: center; font-family: inherit; font-weight: 600; font-size: 1rem; background-color: #000; color: #66ccff; padding: 0.25rem 0.5rem; border: 2px solid #66ccff; border-radius: 6px; width: fit-content; margin: 0 auto 0.5rem auto;">
-            Total Bankroll by Date
-          </div>
-          <canvas id="combinedBankrollChart" style="max-height: 300px;"></canvas>
-        </div>
-      </div>
-
-      <!-- Bottom Row: Venture Charts -->
-      <div id="ventureCharts" style="
-        display: flex;
-        gap: 1rem;
-        width: 100%;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-      "></div>
-    </div>
+<div class="dashboard-grid">
+  <!-- Top Row -->
+  <div class="chart chart-wide">
+    <div class="chart-label green">Cumulative Profit (PnL)</div>
+    <canvas id="profitChart"></canvas>
   </div>
+
+  <div class="chart chart-wide">
+    <div class="chart-label blue">Total Bankroll by Date</div>
+    <canvas id="combinedBankrollChart"></canvas>
+  </div>
+
+  
+  <!-- Bottom Row: Venture Charts (each appended as a .chart.chart-narrow) -->
+<div id="ventureCharts" class="venture-grid"></div>
+
+</div>
+
 
   <!-- Chart.js and data bindings -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
