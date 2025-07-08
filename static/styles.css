@@ -425,7 +425,7 @@ input[type=number]::-webkit-inner-spin-button {
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: 40vh 30vh;
+  grid-template-rows: 40vh 25vh;
   gap: 1rem;
   height: 100vh;
   flex-grow: 1;
@@ -449,12 +449,15 @@ input[type=number]::-webkit-inner-spin-button {
 
 .chart-wide {
   grid-column: span 3;
-  
+  height: 320px;
+  padding: 1rem;
 }
 
 
 .chart-narrow {
   grid-column: span 2;
+  height: 230px;
+  padding: 1rem;
 }
 
 .chart-label {
