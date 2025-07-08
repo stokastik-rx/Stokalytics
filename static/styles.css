@@ -387,7 +387,7 @@ canvas {
   color: #fff;
   border: 1px solid #333;
   font-family: 'JetBrains Mono', monospace;
-  padding: 0.25rem 0.5rem;
+  padding: 0.4rem 0.4rem;
   border-radius: 4px;
   width: 100%;
   box-sizing: border-box;
@@ -411,5 +411,56 @@ canvas {
 .edit-only input {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.9rem;
+}
+
+/* === Standardize input height inside table cells === */
+td input.edit-only {
+  height: 0.1rem; /* Adjust until it visually matches view-mode height */
+  line-height: 1.4rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  box-sizing: border-box;
+}
+
+td {
+  height: 1.3rem;  /* match row height for both modes */
+  vertical-align: middle;
+}
+
+/* Fix height + spacing for input fields inside table rows */
+.edit-only input  {
+  display: none;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #111;
+  color: #fff;
+  border: 1px solid #333;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.4rem;
+  height: 25rem; /* match table row height */
+  line-height: 1.4;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+
+
+/* Hide edit-only by default */
+.edit-only {
+  display: none;
+}
+
+/* Show edit-only + hide view-only when in edit mode */
+body.edit-mode .edit-only {
+  display: inline-block;
+}
+
+body.edit-mode .edit-only td {
+  display: table-cell;
+}
+
+body.edit-mode .view-only {
+  display: none;
 }
 
