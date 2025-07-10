@@ -19,6 +19,58 @@
         {% block content %}{% endblock %}
     </div>
 
+    {% block scripts %}
+    {% block scripts %}
+<script>
+  console.warn('🔥 Sync script loaded');
+
+  function syncStatsRowHeights() {
+    const mainRows = document.querySelectorAll('.table-main tbody tr');
+    const statRows = document.querySelectorAll('.table-stats tbody tr');
+    if (mainRows.length !== statRows.length) {
+      console.error('⚠️ Row count mismatch:', mainRows.length, statRows.length);
+      return;
+    }
+    mainRows.forEach((r,i) => {
+      const h = r.offsetHeight;
+      console.log(`Row ${i} → ${h}px`);
+      statRows[i].style.height = `${h}px`;
+    });
+  }
+
+  (function(){
+    const btn   = document.getElementById('toggleEditBtn');
+    const save  = document.getElementById('saveBtn');
+    const edits = document.querySelectorAll('.edit-only');
+    const views = document.querySelectorAll('.view-only');
+
+    window.toggleEditMode = function() {
+      const entering = btn.innerText === 'Edit';
+      btn.innerText    = entering ? 'Cancel' : 'Edit';
+      save.style.display = entering ? '' : 'none';
+      edits.forEach(e => e.style.display = entering ? '' : 'none');
+      views.forEach(v => v.style.display = entering ? 'none' : '');
+
+      if (entering) {
+        requestAnimationFrame(()=>
+          requestAnimationFrame(syncStatsRowHeights)
+        );
+      } else {
+        document.querySelectorAll('.table-stats tbody tr')
+                .forEach(r=>r.style.height = '');
+      }
+    };
+    window.addEventListener('resize', ()=>{
+      if (btn.innerText==='Cancel') syncStatsRowHeights();
+    });
+  })();
+</script>
+{% endblock %}
+
+    
+    
+    
+    {% endblock %}
 
 
 </body>

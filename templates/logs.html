@@ -61,7 +61,7 @@
                     {{ session[field] or '—' }}
                   {% endif %}
                 </span>
-                <input class="edit-only" style="display: none; width: 100%; box-sizing: border-box; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.25rem; height: 32px;" 
+                <input class="edit-only" style="display: none; width: 60%; box-sizing: border-box;" 
                        type="{% if 'money' in field or 'comps' in field or field == 'tips' %}number{% elif 'time' in field %}time{% elif field == 'date' %}date{% else %}text{% endif %}"
                        step="0.01"
                        name="{{ field }}_{{ loop.index0 }}"
@@ -118,20 +118,12 @@
 
 
   <!-- JS -->
-  <script>
-    function toggleEditMode() {
-      const editElems = document.querySelectorAll('.edit-only');
-      const viewElems = document.querySelectorAll('.view-only');
-      const toggleBtn = document.getElementById('toggleEditBtn');
-      const saveBtn = document.getElementById('saveBtn');
+   
+ 
 
-      const enteringEdit = toggleBtn.innerText === 'Edit';
-      toggleBtn.innerText = enteringEdit ? 'Cancel' : 'Edit';
-      saveBtn.style.display = enteringEdit ? '' : 'none';
 
-      editElems.forEach(el => el.style.display = enteringEdit ? '' : 'none');
-      viewElems.forEach(el => el.style.display = enteringEdit ? 'none' : '');
-    }
-  </script>
+
+
+
 </div>
 {% endblock %}

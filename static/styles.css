@@ -391,7 +391,7 @@ canvas {
   font-family: 'JetBrains Mono', monospace;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  width: 100%;
+  width: 60%;
   box-sizing: border-box;
 }
 
@@ -494,3 +494,106 @@ input[type=number]::-webkit-inner-spin-button {
   height: 100vh;
   padding: 0;
 }
+
+
+
+
+
+/* 1) Vertical-center everything in both tables */
+.table-main td, .table-main th,
+.table-stats td, .table-stats th {
+  vertical-align: middle;
+}
+
+/* 2) Make edit-mode inputs exactly match your cell sizing */
+.table-main td input.edit-only {
+  /* same padding as your cells */
+  padding: 6px 10px !important;
+  /* auto-height to fill the cell */
+  height: auto !important;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+/* 3) (Optional) If you ever want a hard-lock on row height, uncomment these:
+.table-main tbody tr,
+.table-stats tbody tr {
+  height: 2.2rem;  / * tweak to taste * /
+}
+.table-main td input.edit-only {
+  height: 100% !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+*/
+
+/* make date/time/number inputs behave like plain text fields */
+.table-main td input[type="date"].edit-only,
+.table-main td input[type="time"].edit-only,
+.table-main td input[type="number"].edit-only {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: 1.4;
+  padding: 6px 10px !important; /* match your cell padding */
+  box-sizing: border-box;
+}
+
+/* 1) Strip all UA “minimum” sizes on date/time/number fields */
+.table-main input.edit-only[type="date"],
+.table-main input.edit-only[type="time"],
+.table-main input.edit-only[type="number"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  box-sizing: border-box;
+}
+
+/* 2) Re-apply your cell padding exactly */
+.table-main input.edit-only {
+  padding: 6px 10px !important;
+}
+
+/* 3) Vertical-center everything */
+.table-main td,
+.table-main th,
+.table-stats td,
+.table-stats th {
+  vertical-align: middle;
+}
+
+/* 4) (fallback) Lock both tables to a fixed row height if all else fails */
+/*
+.table-main tbody tr,
+.table-stats tbody tr {
+  height: 2.2rem;  / * tweak this rem value until it exactly matches your view-mode rows * /
+}
+.table-main td input.edit-only {
+  height: 100% !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+*/
+
+/* ──────────────────────────────────────────────────── *
+ *  Force edit-mode inputs to match view-mode row height
+ * ──────────────────────────────────────────────────── */
+.table-main td input.edit-only {
+  /* strip out any extra padding */
+  padding-top: 0.4rem !important;    /* same as your td padding-top */
+  padding-bottom: 0.4rem !important; /* same as your td padding-bottom */
+  /* lock to the exact height your view-mode rows are */
+  height: 34px !important;           
+  max-height: 34px !important;
+  box-sizing: border-box !important;
+  /* center text inside */
+  line-height: 1.4 !important;
+}
+
