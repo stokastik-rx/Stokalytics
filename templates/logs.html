@@ -12,7 +12,8 @@
       <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.txt" style="display: none;" onchange="this.form.submit()">
     </form>
 
-    <button type="button" class="btn" id="toggleEditBtn" onclick="toggleEditMode()">Edit</button>
+    <button type="button" class="btn" id="openEditBtn">Edit</button>
+
 
     <form method="POST" action="{{ url_for('clear_logs') }}" onsubmit="return confirm('Are you sure?');">
       <button type="submit" class="btn btn-outline-red">Clear All Logs</button>
@@ -35,8 +36,8 @@
               <th style="width: 80px;">Stakes</th>
               <th style="width: 60px;">Time In</th>
               <th style="width: 60px;">Time Out</th>
-              <th style="width: 90px;">$ In</th>
-              <th style="width: 90px;">$ Out</th>
+              <th style="width: 80px;">$ In</th>
+              <th style="width: 80px;">$ Out</th>
               <th style="width: 65px;">Comps In</th>
               <th style="width: 65px;">Comps Out</th>
               <th style="width: 55px;">Tips</th>
@@ -116,8 +117,138 @@
     </div>
   </div>
 
+  <!-- … your existing tables … -->
 
-  <!-- JS -->
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal-overlay">
+  <div class="modal-content">
+    <h2>Edit Session Logs</h2>
+
+    <form id="editForm" method="POST" action="{{ url_for('update_logs') }}">
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <!-- trash column -->
+              <th style="width: 40px;"></th>
+              <th style="width: 100px;">Date</th>
+              <th style="width: 150px;">Location</th>
+              <th style="width: 100px;">Type</th>
+              <th style="width: 100px;">Stakes</th>
+              <th style="width: 90px;">Time In</th>
+              <th style="width: 90px;">Time Out</th>
+              <th style="width: 70px;">$ In</th>
+              <th style="width: 70px;">$ Out</th>
+              <th style="width: 65px;">Comps In</th>
+              <th style="width: 65px;">Comps Out</th>
+              <th style="width: 50px;">Tips</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in sessions %}
+            <tr>
+              <!-- trash-button cell -->
+              <td class="trash-cell">
+                <button type="button" class="btn btn-outline-red trash-btn" title="Delete this row">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="20" height="20"
+                      fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-2 14H7L5 6"></path>
+                    <path d="M10 6V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"></path>
+                  </svg>
+                </button>
+              </td>
+
+              <input type="hidden" name="id_{{ loop.index0 }}" value="{{ session.id }}">
+
+              {% for field in ['date','location','type','stakes','time_in','time_out','money_in','money_out','comps_in','comps_out','tips'] %}
+              <td>
+                <input
+                  type="{% if field == 'date' %}date{% elif 'time' in field %}time{% elif field in ['money_in','money_out','comps_in','comps_out','tips'] %}number{% else %}text{% endif %}"
+                  {% if 'time' in field %}step="60"{% elif field in ['money_in','money_out','comps_in','comps_out','tips'] %}step="0.01"{% endif %}
+                  name="{{ field }}_{{ loop.index0 }}"
+                  value="{% if field in ['money_in','money_out','comps_in','comps_out','tips'] %}{{ '%.2f'|format(session[field] or 0) }}{% else %}{{ session[field] }}{% endif %}"
+                  class="modal-input"
+                >
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="cancelBtn" class="btn btn-outline-red">Cancel</button>
+        <button type="submit" class="btn btn-outline-green">Save</button>
+      </div>
+      <input type="hidden" name="total_rows" value="{{ sessions|length }}">
+    </form>
+  </div>
+</div>
+
+
+<script>
+  // simple slide‐fade delete animation
+  document.querySelectorAll('.trash-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('tr');
+      row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(-20px)';
+      setTimeout(() => row.remove(), 300);
+    });
+  });
+</script>
+
+<script>
+  const editModal = document.getElementById('editModal');
+  const openBtn   = document.getElementById('openEditBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+
+  openBtn.addEventListener('click', () => {
+    editModal.style.display = 'flex';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    editModal.style.display = 'none';
+  });
+
+  editModal.addEventListener('click', e => {
+    if (e.target === editModal) editModal.style.display = 'none';
+  });
+</script>
+
+
+
+
+
+
+
+
+ <script>
+  const editModal = document.getElementById('editModal');
+  const openBtn   = document.getElementById('openEditBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+
+  openBtn.addEventListener('click', () => {
+    editModal.style.display = 'flex';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    editModal.style.display = 'none';
+  });
+
+  // Optional: click outside modal-content to close
+  editModal.addEventListener('click', e => {
+    if (e.target === editModal) editModal.style.display = 'none';
+  });
+</script>
+
    
  
 

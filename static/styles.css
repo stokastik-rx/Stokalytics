@@ -497,103 +497,235 @@ input[type=number]::-webkit-inner-spin-button {
 
 
 
-
-
-/* 1) Vertical-center everything in both tables */
-.table-main td, .table-main th,
-.table-stats td, .table-stats th {
-  vertical-align: middle;
+/* Modal overlay (backdrop) */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;               /* hidden by default */
+  align-items: center;         /* center the modal */
+  justify-content: center;
+  z-index: 2000;               /* above everything else */
 }
 
-/* 2) Make edit-mode inputs exactly match your cell sizing */
-.table-main td input.edit-only {
-  /* same padding as your cells */
-  padding: 6px 10px !important;
-  /* auto-height to fill the cell */
-  height: auto !important;
-  line-height: 1.4;
+/* The white “dialog” box */
+.modal-content {
+  background-color: #0f0f0f;
+  width: 90%;
+  max-width: 1200px;
+  max-height: 80%;             /* so it never exceeds screen height */
+  overflow-y: auto;            /* scroll if content is too tall */
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 0 10px rgba(0,0,0,0.7);
+  position: relative;
+}
+
+/* Footer inside modal, sticks to bottom as you scroll */
+.modal-footer {
+  position: sticky;
+  bottom: 0;
+  background-color: #0f0f0f;
+  border-top: 1px solid #333;
+  padding: 0.75rem 1rem;
+  text-align: right;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+
+
+
+/* –– Modal table container –– */
+#editModal .table-wrapper {
+  overflow: auto;
+  max-height: calc(80vh - 120px);  /* leave room for title + footer */
+  margin-bottom: 1rem;
+}
+
+/* –– Table & cells –– */
+#editModal .table {
+  width: 100%;
+  border-collapse: collapse;
+}
+#editModal .table th,
+#editModal .table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #333;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9rem;
+}
+  
+/* –– Sticky headers –– */
+#editModal .table th {
+  background-color: #141414;
+  color: #eee;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* –– Dark-themed scrollbars in modal –– */
+#editModal .table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+#editModal .table-wrapper::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+#editModal .table-wrapper::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 4px;
+  border: 2px solid #1a1a1a;
+}
+
+/* –– For Firefox (optional) –– */
+#editModal .table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #444 #1a1a1a;
+}
+
+/* only vertical scroll inside the modal table */
+#editModal .table-wrapper {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* hide ANY WebKit scrollbar in the modal */
+#editModal .table-wrapper::-webkit-scrollbar,
+#editModal .modal-content::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* let your global .table th/td rules style the cells—no overrides needed here */
+/* slim down padding & font for modal table */
+#editModal .table th,
+#editModal .table td {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* inputs fill the cell and use your site’s input styling */
+#editModal .table td input {
+  width: 100%;
+  box-sizing: border-box;
+  /* if you have custom input variables, they’ll apply here */
+}
+
+/* force only vertical scroll, no horizontal */
+#editModal .table-wrapper {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+/* ——————————————
+   EDIT MODAL STYLES
+   —————————————— */
+
+/* Dark overlay, centered flexbox */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none;               /* we toggle via JS */
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal panel */
+.modal-content {
+  background-color: #111;      /* same as your tables */
+  padding: 1.5rem;
+  border-radius: 6px;
+  max-width: 95%;
+  overflow-y: auto;
+  box-shadow: 0 0 10px rgba(0,255,153,0.2);
+}
+
+/* Scrollable wrapper for the table */
+.table-wrapper {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Style each input just like your form-grid inputs */
+.modal-input {
+  background-color: #111;
+  border: 1px solid #333;
+  color: #eee;
+  font-family: 'Consolas', monospace;
+  font-size: 14px;
+  padding: 6px 10px;
+  width: 100%;
   box-sizing: border-box;
 }
 
-/* 3) (Optional) If you ever want a hard-lock on row height, uncomment these:
-.table-main tbody tr,
-.table-stats tbody tr {
-  height: 2.2rem;  / * tweak to taste * /
+/* Optional: tighten up table cells inside the modal */
+.modal-content table th,
+.modal-content table td {
+  padding: 6px 10px;
+  border-color: #333;
 }
-.table-main td input.edit-only {
-  height: 100% !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-*/
 
-/* make date/time/number inputs behave like plain text fields */
-.table-main td input[type="date"].edit-only,
-.table-main td input[type="time"].edit-only,
-.table-main td input[type="number"].edit-only {
-  -webkit-appearance: none;
+/* ----------------------------------------
+   Modal Table Overrides
+   ---------------------------------------- */
+
+/* Target only the table inside your edit modal */
+.modal-content table.table {
+  /* kill the 700px min-width… */
+  min-width: 0 !important;        /* override .table { min-width:700px; } :contentReference[oaicite:0]{index=0} */
+  /* allow us to respect individual column widths */
+  table-layout: fixed;            /* otherwise the browser auto-expands all columns :contentReference[oaicite:1]{index=1} */
+  width: auto;                    /* let it size down to your sum of <th> widths */
+}
+
+/* hide calendar icon on date inputs */
+.modal-input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+  pointer-events: none;
+}
+
+/* hide clock icon on time inputs */
+.modal-input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  pointer-events: none;
+}
+
+/* Firefox fallback: turn date/time into plain textfields */
+.modal-input[type="date"],
+.modal-input[type="time"] {
   -moz-appearance: textfield;
   appearance: none;
-  min-height: 0 !important;
-  height: auto !important;
-  line-height: 1.4;
-  padding: 6px 10px !important; /* match your cell padding */
-  box-sizing: border-box;
 }
 
-/* 1) Strip all UA “minimum” sizes on date/time/number fields */
-.table-main input.edit-only[type="date"],
-.table-main input.edit-only[type="time"],
-.table-main input.edit-only[type="number"] {
-  -webkit-appearance: none;
-  -moz-appearance: textfield;
-  appearance: none;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  height: auto !important;
-  line-height: 1.4 !important;
-  box-sizing: border-box;
+
+/* — Trash Button in Edit Modal — */
+.modal-content .trash-cell {
+  text-align: center;
+  padding: 0;  /* match your table’s padding */
 }
 
-/* 2) Re-apply your cell padding exactly */
-.table-main input.edit-only {
-  padding: 6px 10px !important;
+.modal-content .trash-btn {
+  background-color: transparent;
+  border: none;           /* we’re using btn-outline-red */
+  color: var(--red-500);  /* match your “danger” tone */
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-/* 3) Vertical-center everything */
-.table-main td,
-.table-main th,
-.table-stats td,
-.table-stats th {
-  vertical-align: middle;
+.modal-content .trash-btn:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: var(--red-400);
 }
-
-/* 4) (fallback) Lock both tables to a fixed row height if all else fails */
-/*
-.table-main tbody tr,
-.table-stats tbody tr {
-  height: 2.2rem;  / * tweak this rem value until it exactly matches your view-mode rows * /
-}
-.table-main td input.edit-only {
-  height: 100% !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-*/
-
-/* ──────────────────────────────────────────────────── *
- *  Force edit-mode inputs to match view-mode row height
- * ──────────────────────────────────────────────────── */
-.table-main td input.edit-only {
-  /* strip out any extra padding */
-  padding-top: 0.4rem !important;    /* same as your td padding-top */
-  padding-bottom: 0.4rem !important; /* same as your td padding-bottom */
-  /* lock to the exact height your view-mode rows are */
-  height: 34px !important;           
-  max-height: 34px !important;
-  box-sizing: border-box !important;
-  /* center text inside */
-  line-height: 1.4 !important;
-}
-

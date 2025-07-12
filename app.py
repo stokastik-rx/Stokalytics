@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from datetime import datetime, time
+from datetime import datetime, time, date
 import pandas as pd
 from collections import defaultdict
 
@@ -270,6 +270,7 @@ def delete_session(id):
 def view_logs():
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).all()
     return render_template('logs.html', sessions=sessions, datetime=datetime)
+
 
 
 
