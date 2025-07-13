@@ -30,7 +30,7 @@ app.secret_key = 'your_super_secret_key_here'
 # --- Login Manager Setup ---
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'  # redirects unauthorized users to login page
+login_manager.login_view = 'login'  # type: ignore # redirects unauthorized users to login page
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -44,73 +44,90 @@ def dashboard():
     from collections import defaultdict
     from datetime import datetime
     from logs import SessionRecord, LedSessRecord
+    sync_ledsess()  # Always update LedSess before rendering dashboard
+
+    print(f"\n=== DASHBOARD LOADED FOR USER {current_user.id} ===")
 
     # === Chart 1: Cumulative Profit (PnL vs Time) ===
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).order_by(SessionRecord.date, SessionRecord.time_in).all()
-
+    print(f"[dashboard] Found {len(sessions)} sessions for user {current_user.id}")
+    
     cumulative_profit = 0
     cumulative_time = 0
     chart_point_map = {}
-
-    for s in sessions:
+    
+    for i, s in enumerate(sessions):
         money_in = s.money_in or 0
         money_out = s.money_out or 0
         profit = money_out - money_in
         cumulative_profit += profit
-
+        
         if s.time_in and s.time_out:
             duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
         else:
             duration = 0
-
+            
         cumulative_time += duration
         chart_point_map[round(cumulative_time, 2)] = round(cumulative_profit, 2)
-
+        print(f"  Session {i+1}: {s.date} {s.type} - Money: ${money_in}→${money_out} (Profit: ${profit}) - Time: {duration:.2f}h - Cumulative: ${cumulative_profit:.2f}")
+    
     chart_points = [{"x": x, "y": y} for x, y in sorted(chart_point_map.items())]
+    print('[dashboard] Cumulative Profit chart_points:', chart_points)
 
-    # === Sidebar filter: unique types ===
     unique_types = sorted(set(s.type for s in sessions if s.type))
+    print(f'[dashboard] Unique venture types: {unique_types}')
 
-    # === Chart 2: Total Bankroll by Date using LedSessRecord cumulative values ===
+    # === Chart 2: Total Bankroll by Date (from LedSess) ===
     ledsess_entries = LedSessRecord.query.filter_by(user_id=current_user.id).order_by(LedSessRecord.date, LedSessRecord.id).all()
-
+    print(f"[dashboard] Found {len(ledsess_entries)} LedSess entries for user {current_user.id}")
+    
     cumulative = 0
     date_to_cumulative = {}
-
+    
     for entry in ledsess_entries:
         cumulative += entry.value or 0
         date_str = entry.date.isoformat()
         date_to_cumulative[date_str] = cumulative
-
+        print(f"  LedSess: {entry.date} {entry.type} ${entry.value:.2f} → Cumulative: ${cumulative:.2f}")
+    
     combined_chart_data = [
         {"x": date, "y": round(val, 2)} for date, val in sorted(date_to_cumulative.items())
     ]
+    print('[dashboard] Total Bankroll by Date combined_chart_data:', combined_chart_data)
 
-    # === Venture Charts: Cumulative Profit by Venture (date vs. duration) ===
+    # === Chart 3: Venture Charts ===
     venture_chart_map = defaultdict(list)
     venture_cumulative = defaultdict(float)
     venture_elapsed_time = defaultdict(float)
-
+    
     for s in sessions:
         venture = s.type or "Unknown"
         profit = (s.money_out or 0) - (s.money_in or 0)
         venture_cumulative[venture] += profit
 
-        if venture in ("Poker", "Blackjack") and s.time_in and s.time_out:
-            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
-            venture_elapsed_time[venture] += duration
-            x_val = round(venture_elapsed_time[venture], 2)
-        elif s.date:
-            x_val = s.date.isoformat()
+        if venture in ("Poker", "Blackjack"):
+            # Always use hours as x-axis for Poker/Blackjack
+            if s.time_in and s.time_out:
+                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                venture_elapsed_time[venture] += duration
+                x_val = round(venture_elapsed_time[venture], 2)
+            else:
+                continue  # skip if no time info
         else:
-            continue
+            # For other ventures (e.g., Match Play), use date as x-axis
+            if s.date:
+                x_val = s.date.isoformat()
+            else:
+                continue
 
         venture_chart_map[venture].append({
             "x": x_val,
             "y": round(venture_cumulative[venture], 2)
         })
-
+        print(f"  Venture {venture}: x={x_val}, y=${venture_cumulative[venture]:.2f}")
+    
     venture_chart_data = dict(venture_chart_map)
+    print('[dashboard] Venture chart data:', venture_chart_data)
 
     return render_template(
         'dashboard.html',
@@ -149,7 +166,7 @@ def signup():
         if User.query.filter_by(username=username).first():
             return "Username already exists"
 
-        new_user = User(username=username, email=email)
+        new_user = User(username=username, email=email)  # type: ignore
         new_user.set_password(password)
 
         db.session.add(new_user)
@@ -210,7 +227,7 @@ def file_upload():
                 continue  # skip empty rows
 
             try:
-                record = SessionRecord(
+                record = SessionRecord(  # type: ignore
                     date=pd.to_datetime(row['Date']).date() if pd.notna(row['Date']) else None,
                     location=row['Location'],
                     type=row['Type'],
@@ -268,7 +285,9 @@ def delete_session(id):
 @app.route('/logs')
 @login_required
 def view_logs():
+    print("=== VIEW_LOGS CALLED ===")
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).all()
+    print(f"Found {len(sessions)} sessions for user {current_user.id}")
     return render_template('logs.html', sessions=sessions, datetime=datetime)
 
 
@@ -277,36 +296,54 @@ def view_logs():
 @app.route('/update_logs', methods=['POST'])
 @login_required
 def update_logs():
-    from sqlalchemy.orm.exc import NoResultFound
-    i = 0
-    while True:
-        session_id = request.form.get(f'id_{i}')
-        if not session_id:
-            break
-
+    from sqlalchemy.exc import NoResultFound
+    # No debug imports or file logging
+    
+    # Get all session IDs from the form
+    session_ids = [key.split('_')[1] for key in request.form if key.startswith('id_')]
+    any_changes = False
+    for session_id in session_ids:
         session = SessionRecord.query.get(int(session_id))
         if not session or session.user_id != current_user.id:
-            i += 1
             continue
-
+        session_changed = False
         for field in ['date', 'location', 'type', 'stakes', 'time_in', 'time_out', 'money_in', 'money_out', 'comps_in', 'comps_out', 'tips']:
-            val = request.form.get(f'{field}_{i}')
-            if val:
+            val = request.form.get(f'{field}_{session_id}')
+            if val is not None and val != '':
+                # Convert value based on field type
                 if field in ['money_in', 'money_out', 'comps_in', 'comps_out', 'tips']:
-                    setattr(session, field, float(val))
+                    try:
+                        new_val = float(val) if val else 0
+                        if getattr(session, field) != new_val:
+                            setattr(session, field, new_val)
+                            session_changed = True
+                    except ValueError:
+                        continue
                 elif field in ['time_in', 'time_out']:
-                    setattr(session, field, parse_time(val))
+                    new_val = parse_time(val)
+                    if getattr(session, field) != new_val:
+                        setattr(session, field, new_val)
+                        session_changed = True
                 elif field == 'date':
-                    setattr(session, field, pd.to_datetime(val).date())
+                    try:
+                        new_val = pd.to_datetime(val).date() if val else None
+                        if getattr(session, field) != new_val:
+                            setattr(session, field, new_val)
+                            session_changed = True
+                    except ValueError:
+                        continue
                 else:
-                    setattr(session, field, val)
-
-        i += 1
-
-    db.session.commit()
-    sync_ledsess()
-
-    return redirect(url_for('view_logs'))
+                    if getattr(session, field) != val:
+                        setattr(session, field, val)
+                        session_changed = True
+        if session_changed:
+            any_changes = True
+    if any_changes:
+        db.session.commit()
+        sync_ledsess()
+    from datetime import datetime
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    return redirect(url_for('view_logs', _t=timestamp))
 
 
 
@@ -724,46 +761,51 @@ from flask_login import current_user
 def sync_ledsess():
     from logs import db, LedSessRecord, LedgerRecord, SessionRecord
 
-    seen = {}
+    ledger_count = LedgerRecord.query.filter_by(user_id=current_user.id).count()
+    session_count = SessionRecord.query.filter_by(user_id=current_user.id).count()
+    ledsess_count = LedSessRecord.query.filter_by(user_id=current_user.id).count()
+    if ledger_count == 0 and session_count == 0:
+        print('[sync_ledsess] No data to sync for user', current_user.id)
+        return
 
-    # Step 1: Ledger entries for current user
+    seen = {}
+    print(f'[sync_ledsess] Rebuilding LedSess for user {current_user.id}')
+
     for entry in LedgerRecord.query.filter_by(user_id=current_user.id).all():
         if not entry.date or not entry.venture:
             continue
-
         delta = (entry.deposit or 0) - (entry.withdrawal or 0)
         if delta == 0:
             continue
-
-        key = (entry.date, entry.account, round(-delta, 2))  # Flipped sign
-        seen[key] = LedSessRecord(
+        key = (entry.date, entry.account, round(-delta, 2))
+        seen[key] = LedSessRecord(  # type: ignore
             date=entry.date,
             type=entry.account,
             value=-delta,
             user_id=current_user.id
         )
+        print(f'  [Ledger] {entry.date} {entry.account} {round(-delta,2)}')
 
-    # Step 2: Session entries for current user
     for sess in SessionRecord.query.filter_by(user_id=current_user.id).all():
         if not sess.date or not sess.type:
             continue
-
         profit = (sess.money_out or 0) - (sess.money_in or 0)
         if profit == 0:
             continue
-
         key = (sess.date, sess.type, round(profit, 2))
-        seen[key] = LedSessRecord(
+        seen[key] = LedSessRecord(  # type: ignore
             date=sess.date,
             type=sess.type,
             value=profit,
             user_id=current_user.id
         )
+        print(f'  [Session] {sess.date} {sess.type} {round(profit,2)}')
 
-    # Step 3: Clear only this user's LedSessRecords and insert
     LedSessRecord.query.filter_by(user_id=current_user.id).delete()
-    db.session.bulk_save_objects(seen.values())
+    if seen:
+        db.session.bulk_save_objects(seen.values())
     db.session.commit()
+    print(f'[sync_ledsess] {len(seen)} LedSessRecords created for user {current_user.id}')
 
 
 

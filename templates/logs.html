@@ -26,58 +26,62 @@
 
     <!-- Session Table -->
     <div class="table-main">
-      <form id="editForm" method="POST" action="{{ url_for('update_logs') }}">
-        <table class="table">
-          <thead>
-            <tr>
-              <th style="width: 80px;">Date</th>
-              <th style="width: 140px;">Location</th>
-              <th style="width: 80px;">Type</th>
-              <th style="width: 80px;">Stakes</th>
-              <th style="width: 60px;">Time In</th>
-              <th style="width: 60px;">Time Out</th>
-              <th style="width: 80px;">$ In</th>
-              <th style="width: 80px;">$ Out</th>
-              <th style="width: 65px;">Comps In</th>
-              <th style="width: 65px;">Comps Out</th>
-              <th style="width: 55px;">Tips</th>
-              <th class="edit-only" style="width: 48px; display: none;">Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for session in sessions %}
-            <tr>
-              <input type="hidden" name="id_{{ loop.index0 }}" value="{{ session.id }}">
-              {% set fields = ['date', 'location', 'type', 'stakes', 'time_in', 'time_out', 'money_in', 'money_out', 'comps_in', 'comps_out', 'tips'] %}
-              {% for field in fields %}
-              <td style="white-space: nowrap; vertical-align: middle;">
-                <span class="view-only">
-                  {% if field == 'date' %}
-                    {{ session.date.strftime('%m/%d/%Y') if session.date else '—' }}
-                  {% elif field in ['time_in', 'time_out'] %}
-                    {{ session[field].strftime('%I:%M %p') if session[field] else '—' }}
-                  {% elif field in ['money_in', 'money_out', 'comps_in', 'comps_out', 'tips'] %}
-                    {{ "$%.2f"|format(session[field]) if session[field] is not none else '—' }}
-                  {% else %}
-                    {{ session[field] or '—' }}
-                  {% endif %}
-                </span>
-                <input class="edit-only" style="display: none; width: 60%; box-sizing: border-box;" 
-                       type="{% if 'money' in field or 'comps' in field or field == 'tips' %}number{% elif 'time' in field %}time{% elif field == 'date' %}date{% else %}text{% endif %}"
-                       step="0.01"
-                       name="{{ field }}_{{ loop.index0 }}"
-                       value="{{ session[field] }}">
-              </td>
-              {% endfor %}
-              <td class="edit-only" style="display: none; width:48px; text-align: center;">
-                <button class="btn btn-outline-red" formaction="{{ url_for('delete_session', id=session.id) }}" formmethod="POST" onclick="return confirm('Delete this session?');">X</button>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <button id="saveBtn" class="btn btn-outline-green edit-only" type="submit" style="display: none; margin-top: 1rem;">Save Changes</button>
-      </form>
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">Date</th>
+            <th style="width: 140px;">Location</th>
+            <th style="width: 80px;">Type</th>
+            <th style="width: 80px;">Stakes</th>
+            <th style="width: 60px;">Time In</th>
+            <th style="width: 60px;">Time Out</th>
+            <th style="width: 80px;">$ In</th>
+            <th style="width: 80px;">$ Out</th>
+            <th style="width: 65px;">Comps In</th>
+            <th style="width: 65px;">Comps Out</th>
+            <th style="width: 55px;">Tips</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in sessions %}
+          <tr>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ session.date.strftime('%m/%d/%Y') if session.date else '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ session.location or '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ session.type or '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ session.stakes or '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ session.time_in.strftime('%I:%M %p') if session.time_in else '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ session.time_out.strftime('%I:%M %p') if session.time_out else '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ "$%.2f"|format(session.money_in) if session.money_in is not none else '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ "$%.2f"|format(session.money_out) if session.money_out is not none else '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ "$%.2f"|format(session.comps_in) if session.comps_in is not none else '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ "$%.2f"|format(session.comps_out) if session.comps_out is not none else '—' }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ "$%.2f"|format(session.tips) if session.tips is not none else '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
     <!-- Performance Stats Table -->
@@ -125,7 +129,7 @@
   <div class="modal-content">
     <h2>Edit Session Logs</h2>
 
-    <form id="editForm" method="POST" action="{{ url_for('update_logs') }}">
+    <form id="modalEditForm" method="POST" action="{{ url_for('update_logs') }}">
       <div class="table-wrapper">
         <table class="table">
           <thead>
@@ -163,15 +167,15 @@
                 </button>
               </td>
 
-              <input type="hidden" name="id_{{ loop.index0 }}" value="{{ session.id }}">
+              <input type="hidden" name="id_{{ session.id }}" value="{{ session.id }}">
 
               {% for field in ['date','location','type','stakes','time_in','time_out','money_in','money_out','comps_in','comps_out','tips'] %}
               <td>
                 <input
                   type="{% if field == 'date' %}date{% elif 'time' in field %}time{% elif field in ['money_in','money_out','comps_in','comps_out','tips'] %}number{% else %}text{% endif %}"
                   {% if 'time' in field %}step="60"{% elif field in ['money_in','money_out','comps_in','comps_out','tips'] %}step="0.01"{% endif %}
-                  name="{{ field }}_{{ loop.index0 }}"
-                  value="{% if field in ['money_in','money_out','comps_in','comps_out','tips'] %}{{ '%.2f'|format(session[field] or 0) }}{% else %}{{ session[field] }}{% endif %}"
+                  name="{{ field }}_{{ session.id }}"
+                  value="{% if field in ['money_in','money_out','comps_in','comps_out','tips'] %}{{ '%.2f'|format(session[field] or 0) }}{% elif field == 'date' and session[field] %}{{ session[field].strftime('%Y-%m-%d') }}{% elif 'time' in field and session[field] %}{{ session[field].strftime('%H:%M') }}{% else %}{{ session[field] if session[field] is not none else '' }}{% endif %}"
                   class="modal-input"
                 >
               </td>
@@ -197,10 +201,24 @@
   document.querySelectorAll('.trash-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const row = btn.closest('tr');
-      row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-      row.style.opacity = '0';
-      row.style.transform = 'translateX(-20px)';
-      setTimeout(() => row.remove(), 300);
+      const sessionId = row.querySelector('input[name^="id_"]').value;
+      // Remove confirmation dialog, delete immediately
+      fetch(`/delete_session/${sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }
+      }).then(response => {
+        if (response.ok) {
+          // Animate row removal
+          row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          row.style.opacity = '0';
+          row.style.transform = 'translateX(-20px)';
+          setTimeout(() => row.remove(), 300);
+        } else {
+          alert('Error deleting session');
+        }
+      });
     });
   });
 </script>
@@ -209,6 +227,7 @@
   const editModal = document.getElementById('editModal');
   const openBtn   = document.getElementById('openEditBtn');
   const cancelBtn = document.getElementById('cancelBtn');
+  const modalForm = document.getElementById('modalEditForm');
 
   openBtn.addEventListener('click', () => {
     editModal.style.display = 'flex';
@@ -221,6 +240,42 @@
   editModal.addEventListener('click', e => {
     if (e.target === editModal) editModal.style.display = 'none';
   });
+
+  // Add form submission debugging
+  modalForm.addEventListener('submit', function(e) {
+    console.log('Form submitted!');
+    console.log('Form action:', this.action);
+    console.log('Form method:', this.method);
+    
+    // Log form data
+    const formData = new FormData(this);
+    console.log('Form data entries:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key + ': ' + value);
+    }
+    
+    // Check if we have any non-empty values
+    let hasValues = false;
+    for (let [key, value] of formData.entries()) {
+      if (key.startsWith('id_') || key === 'total_rows') continue;
+      if (value && value !== '' && value !== 'None') {
+        hasValues = true;
+        break;
+      }
+    }
+    
+    if (!hasValues) {
+      console.warn('WARNING: No form values found! All fields appear to be empty.');
+      e.preventDefault();
+      alert('No changes detected. Please make sure to modify at least one field before saving.');
+      return;
+    }
+    
+    // Show loading indicator
+    const saveBtn = this.querySelector('button[type="submit"]');
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+  });
 </script>
 
 
@@ -230,31 +285,5 @@
 
 
 
- <script>
-  const editModal = document.getElementById('editModal');
-  const openBtn   = document.getElementById('openEditBtn');
-  const cancelBtn = document.getElementById('cancelBtn');
-
-  openBtn.addEventListener('click', () => {
-    editModal.style.display = 'flex';
-  });
-
-  cancelBtn.addEventListener('click', () => {
-    editModal.style.display = 'none';
-  });
-
-  // Optional: click outside modal-content to close
-  editModal.addEventListener('click', e => {
-    if (e.target === editModal) editModal.style.display = 'none';
-  });
-</script>
-
-   
- 
-
-
-
-
-
-</div>
+ </div>
 {% endblock %}

@@ -18,8 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
       data: {
         datasets: [{
           label: '',
-          data: [{ x: 0, y: 0 }, ...chartData],
-
+          data: chartData && chartData.length > 0 ? chartData : [{ x: 0, y: 0 }],
           parsing: false,
           borderColor: '#00ff99',
           backgroundColor: '#00ff9966',
@@ -91,12 +90,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const combinedCanvas = document.getElementById('combinedBankrollChart');
   if (combinedCanvas && typeof combinedBankrollData !== 'undefined') {
     const ctx = combinedCanvas.getContext('2d');
+    
+    // Safe handling of combinedBankrollData
+    let chartData = [];
+    if (combinedBankrollData && combinedBankrollData.length > 0) {
+      chartData = [{ x: combinedBankrollData[0].x, y: 0 }, ...combinedBankrollData];
+    } else {
+      chartData = [{ x: new Date().toISOString().split('T')[0], y: 0 }];
+    }
+    
     new Chart(ctx, {
       type: 'line',
       data: {
         datasets: [{
           label: 'Total Bankroll',
-          data: [{ x: combinedBankrollData[0].x, y: 0 }, ...combinedBankrollData],
+          data: chartData,
           borderColor: '#66ccff',
           backgroundColor: '#66ccff66',
           tension: 0.3,
@@ -163,24 +171,27 @@ document.addEventListener('DOMContentLoaded', function () {
       const canvas = wrapper.querySelector('canvas');
       ventureContainer.appendChild(wrapper);
 
+      // Safe handling of venture chart data
+      let chartData = [];
+      if (data && data.length > 0) {
+        const first = data[0];
+        // Inject origin if not Match Play
+        if (venture !== 'Match Play') {
+          chartData = [{ x: isDuration ? 0 : first.x, y: 0 }, ...data];
+        } else {
+          chartData = data;
+        }
+      } else {
+        // Default data for empty charts
+        chartData = [{ x: isDuration ? 0 : new Date().toISOString().split('T')[0], y: 0 }];
+      }
+
       new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
           datasets: [{
             label: '',
-            data: (() => {
-  if (!data.length) return [];
-  const first = data[0];
-
-  // Inject origin if not Match Play
-  if (venture !== 'Match Play') {
-    return [{ x: isDuration ? 0 : first.x, y: 0 }, ...data];
-  }
-
-  return data;
-})(),
-
-
+            data: chartData,
             borderColor: color,
             backgroundColor: color + '66',
             tension: 0.3,
