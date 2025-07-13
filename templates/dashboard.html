@@ -90,6 +90,110 @@
 
 </div>
 
+</div> <!-- End of .container or main content -->
+
+<!-- QUOTE CONTAINER: Centered between charts and ticker, not under sidebar -->
+<div id="quote-container" style="position: absolute; left: 300px; right: 40px; margin: 0 auto; bottom: 3.8em; width: auto; max-width: none; min-width: 300px; z-index: 900; text-align: center;">
+  <div id="quote-box" style="background: #181818; color: #fff; border-radius: 10px; border: 1px solid #333; width: 100%; height: 4em; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; font-size: 1em; font-family: 'JetBrains Mono', Consolas, monospace; box-shadow: 0 2px 12px #000a;">
+    <!-- Quote will be inserted here -->
+  </div>
+</div>
+
+<script>
+const pokerBlackjackQuotes = [
+  "Poker is a hard way to make an easy living. – Doyle Brunson",
+  "The commonest mistake in history is underestimating your opponent; it happens at the poker table all the time. – David Shoup",
+  "If you can't spot the sucker in your first half hour at the table, then you are the sucker. – Matt Damon (Rounders)",
+  "The beautiful thing about poker is that everybody thinks they can play. – Chris Moneymaker",
+  "In the long run, there's no luck in poker, but the short run is longer than most people know. – Rick Bennet",
+  "Blackjack is the only casino game where the odds can be in your favor. – Edward O. Thorp",
+  "The house doesn't beat the player. It just gives him the opportunity to beat himself. – Nicholas Dandolos",
+  "The smarter you play, the luckier you'll be. – Mark Pilarski",
+  "Fold and live to fold again. – Stu Ungar",
+  "Luck is what happens when preparation meets opportunity. – Seneca"
+];
+function showRandomQuote() {
+  const quote = pokerBlackjackQuotes[Math.floor(Math.random() * pokerBlackjackQuotes.length)];
+  document.getElementById('quote-box').textContent = quote;
+}
+document.addEventListener('DOMContentLoaded', showRandomQuote);
+</script>
+
+<!-- Place the ticker bar and script at the very end, outside all containers -->
+
+<style>
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+#session-ticker {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  overflow-x: hidden;
+  background: #101010;
+  border-top: 1px solid #222;
+  margin: 0;
+  padding: 0;
+  height: 2.2em;
+  z-index: 1000;
+}
+#ticker-inner {
+  white-space: nowrap;
+  display: inline-block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  padding: 0;
+  margin: 0;
+  animation: ticker-scroll linear infinite;
+  animation-duration: 30s;
+}
+</style>
+
+<div id="session-ticker">
+  <div id="ticker-inner"></div>
+</div>
+
+<script>
+function renderTicker(sessions) {
+  const ticker = document.getElementById('ticker-inner');
+  ticker.innerHTML = '';
+  if (!sessions.length) {
+    ticker.innerHTML = '<span style="color:#888; font-family:JetBrains Mono,monospace;">No recent sessions to display.</span>';
+    ticker.style.animation = 'none';
+    return;
+  }
+  let contentHTML = '';
+  sessions.forEach(s => {
+    const color = s.amount >= 0 ? '#00ff99' : '#ff4444';
+    const sign = s.amount >= 0 ? '+' : '';
+    contentHTML +=
+      `<span style='display:inline-block; margin-right:2.5em; font-family:JetBrains Mono, Consolas, monospace; font-size:1.1em; color:#fff;'>` +
+      `<span style='color:#aaa;'>[${s.type}]</span> ` +
+      `<span style='color:${color};'>${sign}$${Math.abs(s.amount)}</span> | ` +
+      `<span style='color:#66ccff;'>${s.hours}h</span> | ` +
+      `<span style='color:#ffaa00;'>${s.date}</span>` +
+      `</span>`;
+  });
+  // Duplicate the content for seamless looping
+  ticker.innerHTML = contentHTML + contentHTML;
+  // Set animation duration based on content width for consistent speed
+  const pxPerSec = 60; // adjust for speed
+  const duration = (ticker.scrollWidth / 2) / pxPerSec;
+  ticker.style.animationDuration = duration + 's';
+  ticker.style.animationName = 'ticker-scroll';
+}
+
+fetch('/api/recent_sessions')
+  .then(r => r.json())
+  .then(data => {
+    renderTicker(data);
+  });
+</script>
 
   <!-- Chart.js and data bindings -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -154,5 +258,4 @@
     });
   </script>
 
-</div>
 {% endblock %}

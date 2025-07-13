@@ -939,5 +939,35 @@ def refresh_ledsess():
 
 
 
+@app.route('/api/recent_sessions')
+@login_required
+def api_recent_sessions():
+    from logs import SessionRecord
+    from datetime import datetime
+    sessions = (
+        SessionRecord.query
+        .filter_by(user_id=current_user.id)
+        .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
+        .limit(10)
+        .all()
+    )
+    result = []
+    for s in sessions:
+        money_in = s.money_in or 0
+        money_out = s.money_out or 0
+        profit = money_out - money_in
+        if s.time_in and s.time_out:
+            hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+        else:
+            hours = 0
+        result.append({
+            'type': s.type or '',
+            'amount': round(profit, 2),
+            'hours': round(hours, 2),
+            'date': s.date.strftime('%m/%d') if s.date else ''
+        })
+    return jsonify(result)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5555, debug=False)
+
