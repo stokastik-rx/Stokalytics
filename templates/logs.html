@@ -48,7 +48,7 @@
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ session.date.strftime('%m/%d/%Y') if session.date else '—' }}
             </td>
-            <td style="white-space: nowrap; vertical-align: middle;">
+            <td style="white-space: nowrap; vertical-align: middle; border-left: 3px solid {{ location_colors.get(session.location, '#333') }}; color: {{ location_colors.get(session.location, '#aaa') }}99; font-weight: 500; background: rgba(0,0,0,0.1);" data-location-cell="{{ session.location }}">
               {{ session.location or '—' }}
             </td>
             <td style="white-space: nowrap; vertical-align: middle;">

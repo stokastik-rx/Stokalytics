@@ -85,3 +85,14 @@ class LedSessRecord(db.Model):
     cumulative = db.Column(db.Float)  # <-- ADD THIS LINE
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
+
+class LocationNote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('location_record.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    location = db.relationship('LocationRecord', backref=db.backref('notes', lazy=True, cascade='all, delete-orphan'))
+

@@ -23,24 +23,74 @@
 
   <!-- Paired Location Rows -->
   <div style="margin-top: 2rem; display: flex; flex-direction: column; row-gap: 1.5rem;">
-
     {% for location in locations %}
-    <div style="display: grid; grid-template-columns: 1fr 260px; column-gap: 2rem; align-items: start; margin-bottom: 2rem;">
+    <div class="location-row" style="display: flex; flex-direction: row; column-gap: 2rem; align-items: stretch; margin-bottom: 2rem;" id="location-card-{{ location.id }}" data-location="{{ location.name }}">
 
-
-      
-      <!-- Left: Note Box -->
-      <div class="scrollbox" style="border: 1px solid #333; border-left: 6px solid {{ location.color }}; padding: 1rem; max-height: 180px;">
-        <strong style="font-size: 1.1rem;">{{ location.name }}</strong>
-        <form method="POST" action="{{ url_for('update_location_note', location_id=location.id) }}">
-          <textarea name="note" rows="3" placeholder="Notes..." style="width: 100%; background-color: #111; color: #fff; border: 1px solid #444; font-family: monospace; margin-top: 0.5rem;">{{ location.note }}</textarea>
-          <button type="submit" class="btn btn-outline-green" style="margin-top: 0.5rem;">Save Note</button>
+      <!-- Left: Journal Notes Box -->
+      <div class="scrollbox journal-box" style="border: 1px solid #333; border-left: 6px solid {{ location.color }}; padding: 1rem; max-height: 350px; min-width: 0; flex: 1; display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.5rem; gap: 1rem;">
+          <strong style="font-size: 1.1rem; align-self: flex-start;">{{ location.name }}</strong>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; margin-left: auto;">
+            <div style="display: flex; flex-direction: row; gap: 0.5rem;">
+              <button class="btn btn-outline-green btn-small" id="new-note-btn-{{ location.id }}" style="width: 100px;" onclick="toggleAddNote({{ location.id }})">New Note</button>
+              <button class="btn btn-small btn-outline-green" onclick="toggleEditMode({{ location.id }})" type="button">Edit</button>
+            </div>
+            <form onsubmit="return saveColorAjax(event, {{ location.id }})" id="color-form-{{ location.id }}" class="color-form hidden" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+              <input type="color" name="color" value="{{ location.color }}" id="color-input-{{ location.id }}" class="hidden" style="width: 32px; height: 24px; border: none; background: none; cursor: pointer; vertical-align: middle;">
+              <button type="submit" class="btn btn-small hidden">Save Color</button>
+            </form>
+          </div>
+        </div>
+        <form id="add-note-form-{{ location.id }}" method="POST" action="{{ url_for('add_location_note', location_id=location.id) }}" class="hidden" style="margin-bottom: 0.5rem;">
+          <textarea name="content" rows="2" placeholder="Add a new note..." style="width: 100%; background-color: #111; color: #fff; border: 1px solid #444; font-family: monospace; resize: vertical;"></textarea>
+          <button type="submit" class="btn btn-outline-green btn-small" style="margin-top: 0.5rem;">Add Note</button>
         </form>
+        <!-- Notes List -->
+        <div style="overflow-y: auto; flex: 1; min-height: 0;">
+          {% if location_notes[location.id] %}
+            {% for note in location_notes[location.id] %}
+            <div class="note-entry" style="border: 1px solid #444; padding: 0.75rem; margin-bottom: 0.75rem; background-color: #0a0a0a; border-radius: 4px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                <small style="color: #888; font-family: monospace;">
+                  {{ note.created_at.strftime('%m/%d/%Y') }}
+                  {% if note.updated_at and note.updated_at.date() != note.created_at.date() %}
+                    (edited {{ note.updated_at.strftime('%m/%d/%Y') }})
+                  {% endif %}
+                </small>
+                <div style="display: flex; gap: 0.25rem;">
+                  <button class="btn btn-small note-edit-btn hidden" id="edit-btn-{{ note.id }}" onclick="editNote({{ note.id }}, '{{ note.content | replace("'", "\\'") | replace("\n", "\\n") }}')" type="button">Edit</button>
+                  <form method="POST" action="{{ url_for('delete_location_note', note_id=note.id) }}" id="delete-note-form-{{ note.id }}" class="hidden" style="display: inline;">
+                    <button type="submit" class="btn btn-small btn-danger note-delete-btn" onclick="return confirm('Delete this note?')">Delete</button>
+                  </form>
+                </div>
+              </div>
+              <div id="note-content-{{ note.id }}" class="note-content">
+                {{ note.content | replace('\n', '<br>') | safe }}
+              </div>
+              <div id="note-edit-{{ note.id }}" class="note-edit hidden">
+                <form method="POST" action="{{ url_for('edit_location_note', note_id=note.id) }}">
+                  <textarea name="content" rows="3" style="width: 100%; background-color: #111; color: #fff; border: 1px solid #444; font-family: monospace; margin-bottom: 0.5rem;">{{ note.content }}</textarea>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-small">Save</button>
+                    <button type="button" class="btn btn-small" onclick="cancelEdit({{ note.id }})">Cancel</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p style="color: #666; font-style: italic; text-align: center; margin-top: 1rem;">No notes yet. Add your first note above!</p>
+          {% endif %}
+        </div>
+        <div style="display: flex; justify-content: center; margin-top: 1rem;">
+          <form method="POST" action="{{ url_for('delete_location', location_id=location.id) }}" id="delete-form-{{ location.id }}" class="hidden">
+            <button type="submit" class="btn btn-small btn-danger">Delete</button>
+          </form>
+        </div>
       </div>
 
       <!-- Right: Stats Box -->
-      <div class="sidebar scrollbox" style="padding: 1rem; border-left: 5px solid {{ location.color }}; max-height: 150px; background-color: #0d0d0d; border-radius: 4px;">
-
+      <div class="sidebar scrollbox stats-box" style="padding: 1rem; border-left: 5px solid {{ location.color }}; max-height: 350px; min-width: 260px; background-color: #0d0d0d; border-radius: 4px; flex: 0 0 260px; display: flex; flex-direction: column; justify-content: stretch;">
         <h3 style="margin-top: 0;">{{ location.name }}</h3>
         <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #ccc;">
           <p>
@@ -60,7 +110,6 @@
           </p>
            {% endif %}
           {% endfor %}
-
 
           <p style="margin-top: 0.75rem;"><strong>Total Hours:</strong> {{ summary[location.name]['total_hours'] | round(1) }}</p>
           {% for v in ['Blackjack', 'Poker', 'Match Play'] %}
@@ -83,5 +132,131 @@ function toggleLocationForm() {
   const form = document.getElementById('locationForm');
   form.classList.toggle('hidden');
 }
+
+function toggleAddNote(locationId) {
+  const form = document.getElementById(`add-note-form-${locationId}`);
+  form.classList.toggle('hidden');
+}
+
+let activeEditLocation = null;
+function toggleEditMode(locationId) {
+  // Hide all color forms, note edit/delete, delete buttons, and delete note forms
+  document.querySelectorAll('.color-form').forEach(f => f.classList.add('hidden'));
+  document.querySelectorAll('.color-form input[type=color]').forEach(f => f.classList.add('hidden'));
+  document.querySelectorAll('.color-form button[type=submit]').forEach(f => f.classList.add('hidden'));
+  document.querySelectorAll('.note-edit-btn, .note-delete-btn').forEach(btn => btn.classList.add('hidden'));
+  document.querySelectorAll('[id^="delete-form-"]').forEach(f => f.classList.add('hidden'));
+  document.querySelectorAll('[id^="delete-note-form-"]').forEach(f => f.classList.add('hidden'));
+  // Show for this location only
+  const colorForm = document.getElementById(`color-form-${locationId}`);
+  const colorInput = document.getElementById(`color-input-${locationId}`);
+  const colorBtn = colorForm.querySelector('button[type=submit]');
+  const deleteForm = document.getElementById(`delete-form-${locationId}`);
+  if (activeEditLocation === locationId) {
+    colorForm.classList.add('hidden');
+    colorInput.classList.add('hidden');
+    colorBtn.classList.add('hidden');
+    deleteForm.classList.add('hidden');
+    document.querySelectorAll(`#location-card-${locationId} .note-edit-btn, #location-card-${locationId} .note-delete-btn, #location-card-${locationId} [id^='delete-note-form-']`).forEach(btn => btn.classList.add('hidden'));
+    activeEditLocation = null;
+  } else {
+    colorForm.classList.remove('hidden');
+    colorInput.classList.remove('hidden');
+    colorBtn.classList.remove('hidden');
+    deleteForm.classList.remove('hidden');
+    document.querySelectorAll(`#location-card-${locationId} .note-edit-btn, #location-card-${locationId} .note-delete-btn, #location-card-${locationId} [id^='delete-note-form-']`).forEach(btn => btn.classList.remove('hidden'));
+    activeEditLocation = locationId;
+  }
+}
+
+function editNote(noteId, content) {
+  document.getElementById(`note-content-${noteId}`).classList.add('hidden');
+  document.getElementById(`note-edit-${noteId}`).classList.remove('hidden');
+}
+
+function cancelEdit(noteId) {
+  document.getElementById(`note-content-${noteId}`).classList.remove('hidden');
+  document.getElementById(`note-edit-${noteId}`).classList.add('hidden');
+}
+
+function saveColorAjax(event, locationId) {
+  event.preventDefault();
+  const colorInput = document.getElementById(`color-input-${locationId}`);
+  const color = colorInput.value;
+  fetch(`/api/update_location_color/${locationId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `color=${encodeURIComponent(color)}`
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      // Update card border
+      const card = document.getElementById(`location-card-${locationId}`);
+      if (card) card.style.borderLeft = `6px solid ${color}`;
+      // Update stats box border
+      const statsBox = card.querySelector('.stats-box');
+      if (statsBox) statsBox.style.borderLeft = `5px solid ${color}`;
+      // Update all logs table cells for this location
+      document.querySelectorAll(`[data-location-cell="${card.getAttribute('data-location')}"]`).forEach(cell => {
+        cell.style.borderLeft = `3px solid ${color}`;
+        cell.style.color = color + '99';
+      });
+    }
+  });
+  return false;
+}
 </script>
+
+<style>
+.btn-small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 3px;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.note-entry {
+  transition: all 0.2s ease;
+}
+
+.note-entry:hover {
+  border-color: #666;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.location-row {
+  min-height: 350px;
+}
+
+.journal-box, .stats-box {
+  max-height: 350px;
+  min-height: 350px;
+  overflow-y: auto;
+}
+
+/* Reuse your custom scrollbar styles if present */
+.scrollbox::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollbox::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 4px;
+}
+.scrollbox::-webkit-scrollbar-track {
+  background: #111;
+}
+</style>
 {% endblock %}

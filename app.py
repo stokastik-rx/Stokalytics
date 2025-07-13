@@ -1,14 +1,21 @@
-from flask import Flask, render_template, request, redirect, url_for, current_app
+from flask import Flask, render_template, request, redirect, url_for, current_app, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from datetime import datetime, time, date
 import pandas as pd
 from collections import defaultdict
+import random
 
 # --- Shared DB instance ---
 from users import db, User
 from logs import SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord, LocationRecord, LedSessRecord
+from logs import LocationNote  # add LocationNote import
+
+# --- Helper: Generate random HEX color ---
+def random_color():
+    import random
+    return "#" + ''.join(random.choices('0123456789ABCDEF', k=6))
 
 # --- Flask App Setup ---
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
@@ -288,7 +295,10 @@ def view_logs():
     print("=== VIEW_LOGS CALLED ===")
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).all()
     print(f"Found {len(sessions)} sessions for user {current_user.id}")
-    return render_template('logs.html', sessions=sessions, datetime=datetime)
+    # Build a mapping of location name to color
+    locations = LocationRecord.query.filter_by(user_id=current_user.id).all()
+    location_colors = {loc.name: loc.color for loc in locations}
+    return render_template('logs.html', sessions=sessions, datetime=datetime, location_colors=location_colors)
 
 
 
@@ -697,9 +707,42 @@ def add_location():
         db.session.commit()
     return redirect(url_for('view_locations'))
 
+@app.route('/add_location_note/<int:location_id>', methods=['POST'])
+@login_required
+def add_location_note(location_id):
+    location = LocationRecord.query.get(location_id)
+    if location and location.user_id == current_user.id:
+        content = request.form.get('content', '').strip()
+        if content:
+            new_note = LocationNote(
+                location_id=location_id,
+                user_id=current_user.id,
+                content=content
+            )
+            db.session.add(new_note)
+            db.session.commit()
+    return redirect(url_for('view_locations'))
 
+@app.route('/edit_location_note/<int:note_id>', methods=['POST'])
+@login_required
+def edit_location_note(note_id):
+    note = LocationNote.query.get(note_id)
+    if note and note.user_id == current_user.id:
+        content = request.form.get('content', '').strip()
+        if content:
+            note.content = content
+            note.updated_at = datetime.utcnow()
+            db.session.commit()
+    return redirect(url_for('view_locations'))
 
-
+@app.route('/delete_location_note/<int:note_id>', methods=['POST'])
+@login_required
+def delete_location_note(note_id):
+    note = LocationNote.query.get(note_id)
+    if note and note.user_id == current_user.id:
+        db.session.delete(note)
+        db.session.commit()
+    return redirect(url_for('view_locations'))
 
 @app.route('/update_location_note/<int:location_id>', methods=['POST'])
 @login_required
@@ -715,9 +758,49 @@ def update_location_note(location_id):
 
 
 
+@app.route('/api/update_location_color/<int:location_id>', methods=['POST'])
+@login_required
+def update_location_color(location_id):
+    color = request.form.get('color')
+    location = LocationRecord.query.get(location_id)
+    if location and location.user_id == current_user.id and color:
+        location.color = color
+        db.session.commit()
+        return jsonify(success=True)
+    return jsonify(success=False), 400
+
+
+
+
+@app.route('/delete_location/<int:location_id>', methods=['POST'])
+@login_required
+def delete_location(location_id):
+    location = LocationRecord.query.get(location_id)
+    if location and location.user_id == current_user.id:
+        # Delete all notes for this location
+        LocationNote.query.filter_by(location_id=location_id, user_id=current_user.id).delete()
+        db.session.delete(location)
+        db.session.commit()
+    return redirect(url_for('view_locations'))
+
+
+
+
+
 @app.route('/locations')
 @login_required
 def view_locations():
+    # Auto-populate locations from SessionRecord if missing
+    session_locations = set(s.location for s in SessionRecord.query.filter_by(user_id=current_user.id).all() if s.location)
+    existing_locations = {loc.name for loc in LocationRecord.query.filter_by(user_id=current_user.id).all()}
+    missing = session_locations - existing_locations
+    for name in missing:
+        color = random_color()
+        new_loc = LocationRecord(name=name, color=color, note="", user_id=current_user.id)
+        db.session.add(new_loc)
+    if missing:
+        db.session.commit()
+
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).all()
     locations = LocationRecord.query.filter_by(user_id=current_user.id).all()
 
@@ -750,7 +833,13 @@ def view_locations():
 
         summary[loc.name] = loc_summary
 
-    return render_template('locations.html', locations=locations, summary=summary)
+    # Get notes for each location
+    location_notes = {}
+    for loc in locations:
+        notes = LocationNote.query.filter_by(location_id=loc.id, user_id=current_user.id).order_by(LocationNote.created_at.desc()).all()
+        location_notes[loc.id] = notes
+
+    return render_template('locations.html', locations=locations, summary=summary, location_notes=location_notes)
 
 
 
