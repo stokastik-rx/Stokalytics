@@ -66,7 +66,13 @@
       <h3 style="color: #ffffff; font-family: Consolas, monospace;">Ventures</h3>
       <ul style="list-style: none; padding-left: 0;">
         {% for type in unique_types %}
-          <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">{{ type }}</li>
+          <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">
+            {% if type == 'Blackjack' %}
+              <a href="{{ url_for('view_blackjack') }}" style="color: #00ffff; text-decoration: none; font-weight: bold;">Blackjack</a>
+            {% else %}
+              {{ type }}
+            {% endif %}
+          </li>
         {% endfor %}
       </ul>
     </div>

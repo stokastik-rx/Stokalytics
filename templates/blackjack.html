@@ -2,28 +2,368 @@
 
 {% block content %}
 <div class="container">
-  <h1>Blackjack History</h1>
-  <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+  <h1>Blackjack</h1>
+  <div class="button-row">
+    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+    <a href="{{ url_for('view_logs') }}?type=Blackjack" class="btn">Blackjack Logs</a>
+    <button class="btn" id="manage-spreads-btn" type="button">Manage Spreads</button>
+    <button class="btn" id="manage-gamerules-btn" type="button">Manage Game Rules</button>
+  </div>
 
-  <table class="table" style="margin-top: 1rem;">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Change</th>
-        <th>Source</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in records %}
-      <tr>
-        <td>{{ row.date.strftime('%Y-%m-%d') }}</td>
-        <td class="{{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}">
-          {{ "%.2f"|format(row.change) }}
-        </td>
-        <td>{{ row.source }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="main-content">
+    <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; max-height: 90vh;">
+      <!-- Venture Statistics -->
+      <h3 style="color: #ffffff; font-family: Consolas, monospace;">Venture Statistics</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Total Profit/Loss: <span class="{{ 'positive' if bj_stats.total_profit >= 0 else 'negative' }}">${{ '%.2f'|format(bj_stats.total_profit) }}</span></li>
+        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Total Sessions: {{ bj_stats.total_sessions }}</li>
+        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Total Hours: {{ '%.2f'|format(bj_stats.total_hours) }}</li>
+        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Hourly Rate: <span class="{{ 'positive' if bj_stats.total_hours > 0 and bj_stats.total_profit / bj_stats.total_hours >= 0 else 'negative' }}">${{ '%.2f'|format(bj_stats.total_profit / bj_stats.total_hours if bj_stats.total_hours > 0 else 0) }}</span></li>
+        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Best Session: ${{ '%.2f'|format(bj_stats.best_session) }}</li>
+        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Worst Session: ${{ '%.2f'|format(bj_stats.worst_session) }}</li>
+      </ul>
+      <!-- Variance Analysis visually separated -->
+      <div style="margin-top: 2rem; background: #111; border-radius: 10px; padding: 1rem; box-shadow: 0 0 0 1px #222;">
+        <h3 style="color: #ffffff; font-family: Consolas, monospace; margin-top: 0;">Variance Analysis</h3>
+        <div style="color: #aaa;">(Coming soon)</div>
+      </div>
+    </div>
+    <!-- Main charts and table area -->
+    <div class="dashboard-grid">
+      <div class="chart chart-wide">
+        <div class="chart-label green">Blackjack P/L</div>
+        <canvas id="bjPLChart"></canvas>
+      </div>
+      <div class="chart chart-wide">
+        <div class="chart-label blue">Blackjack Bankroll</div>
+        <canvas id="bjBankrollChart"></canvas>
+      </div>
+      <div class="table-wrapper" style="grid-column: span 6; max-height: 420px; overflow-y: auto; margin-top: 0.5rem;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:90px;">Date</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:90px;">Change (Hourly)</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:120px;">Spread</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:120px;">System</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:120px;">Game Rules</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:90px;">Game Speed</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:110px;">EV</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:70px;">Variance %tile</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in records %}
+            <tr data-bj-id="{{ row.id }}" data-spread="{{ row.spread }}" data-gamerules="{{ row.game_rules }}">
+              <td>{{ row.date.strftime('%m/%d/%Y') }}</td>
+              <td class="{{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}">
+                {{ "%.2f"|format(row.change) }}
+                <span style="color:#fff; font-size:0.95em;">(
+                  {% if row.hourly_rate is not none %}
+                    <span class="{{ 'positive' if row.hourly_rate > 0 else 'negative' if row.hourly_rate < 0 else '' }}">${{ '%.2f'|format(row.hourly_rate) }}</span>
+                  {% else %}
+                    --
+                  {% endif %}
+                )</span>
+              </td>
+              <td><select class="spread-select styled-select" style="width:120px;"></select></td>
+              <td>
+                <select class="system-select styled-select" style="width:120px;">
+                  <option value="">--</option>
+                  <option value="Hi-Lo" {% if row.system == 'Hi-Lo' %}selected{% endif %}>Hi-Lo</option>
+                  <option value="KO" {% if row.system == 'KO' %}selected{% endif %}>KO</option>
+                  <option value="Omega II" {% if row.system == 'Omega II' %}selected{% endif %}>Omega II</option>
+                  <option value="No Count" {% if row.system == 'No Count' %}selected{% endif %}>No Count</option>
+                </select>
+              </td>
+              <td><select class="gamerule-select styled-select" style="width:120px;"></select></td>
+              <td><input type="number" class="game-speed-input styled-input" min="0" max="999" maxlength="3" style="width:120px;" value="{{ row.game_speed if row.game_speed else 100 }}"></td>
+              <td class="ev-cell">--</td>
+              <td class="variance-cell">--</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div> <!-- end .main-content -->
+
+  <!-- Manage Spreads Modal -->
+  <div id="spreads-modal" class="modal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:#181818; padding:2em; border-radius:10px; min-width:320px; max-width:90vw;">
+      <h3 style="margin-top:0;">Manage Spreads</h3>
+      <div style="display:flex; gap:0.5em; margin-bottom:1em;">
+        <input id="new-spread-input" type="text" placeholder="e.g. 1-8" style="flex:1;">
+        <button id="add-spread-btn" class="btn">Add</button>
+      </div>
+      <ul id="spreads-list" style="list-style:none; padding:0; margin:0;"></ul>
+      <button class="btn" id="close-spreads-modal" style="margin-top:1em;">Close</button>
+    </div>
+  </div>
+
+  <!-- Manage Game Rules Modal -->
+  <div id="gamerules-modal" class="modal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:#181818; padding:2em; border-radius:10px; min-width:320px; max-width:90vw;">
+      <h3 style="margin-top:0;">Manage Game Rules</h3>
+      <div style="display:flex; gap:0.5em; margin-bottom:1em;">
+        <input id="new-gamerule-input" type="text" placeholder="e.g. H17/DAS" style="flex:1;">
+        <button id="add-gamerule-btn" class="btn">Add</button>
+      </div>
+      <ul id="gamerules-list" style="list-style:none; padding:0; margin:0;"></ul>
+      <button class="btn" id="close-gamerules-modal" style="margin-top:1em;">Close</button>
+    </div>
+  </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script>
+// Modal logic
+function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+function hideModal(id) { document.getElementById(id).style.display = 'none'; }
+document.getElementById('manage-spreads-btn').onclick = () => showModal('spreads-modal');
+document.getElementById('close-spreads-modal').onclick = () => hideModal('spreads-modal');
+document.getElementById('manage-gamerules-btn').onclick = () => showModal('gamerules-modal');
+document.getElementById('close-gamerules-modal').onclick = () => hideModal('gamerules-modal');
+
+// --- API integration for Spreads ---
+function fetchSpreads(callback) {
+  fetch('/api/blackjack_spreads').then(r => r.json()).then(data => {
+    if (callback) callback(data);
+    const list = document.getElementById('spreads-list');
+    if (list) {
+      list.innerHTML = '';
+      data.forEach(spread => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.style.justifyContent = 'space-between';
+        li.style.marginBottom = '0.3em';
+        li.innerHTML = `<span>${spread.value}</span>`;
+        const del = document.createElement('button');
+        del.textContent = 'Delete';
+        del.className = 'btn btn-outline-red';
+        del.onclick = () => {
+          fetch(`/api/blackjack_spreads/${spread.id}`, {method: 'DELETE'}).then(() => fetchSpreads());
+        };
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    }
+  });
+}
+document.getElementById('spreads-modal').addEventListener('show', () => fetchSpreads());
+document.getElementById('manage-spreads-btn').addEventListener('click', () => fetchSpreads());
+document.getElementById('add-spread-btn').onclick = () => {
+  const val = document.getElementById('new-spread-input').value.trim();
+  if (!val) return;
+  const fd = new FormData();
+  fd.append('value', val);
+  fetch('/api/blackjack_spreads', {method: 'POST', body: fd}).then(() => {
+    document.getElementById('new-spread-input').value = '';
+    fetchSpreads();
+    populateAllDropdowns();
+  });
+};
+
+// --- API integration for Game Rules ---
+function fetchGameRules(callback) {
+  fetch('/api/blackjack_gamerules').then(r => r.json()).then(data => {
+    if (callback) callback(data);
+    const list = document.getElementById('gamerules-list');
+    if (list) {
+      list.innerHTML = '';
+      data.forEach(rule => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.style.justifyContent = 'space-between';
+        li.style.marginBottom = '0.3em';
+        li.innerHTML = `<span>${rule.value}</span>`;
+        const del = document.createElement('button');
+        del.textContent = 'Delete';
+        del.className = 'btn btn-outline-red';
+        del.onclick = () => {
+          fetch(`/api/blackjack_gamerules/${rule.id}`, {method: 'DELETE'}).then(() => fetchGameRules());
+        };
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    }
+  });
+}
+document.getElementById('gamerules-modal').addEventListener('show', () => fetchGameRules());
+document.getElementById('manage-gamerules-btn').addEventListener('click', () => fetchGameRules());
+document.getElementById('add-gamerule-btn').onclick = () => {
+  const val = document.getElementById('new-gamerule-input').value.trim();
+  if (!val) return;
+  const fd = new FormData();
+  fd.append('value', val);
+  fetch('/api/blackjack_gamerules', {method: 'POST', body: fd}).then(() => {
+    document.getElementById('new-gamerule-input').value = '';
+    fetchGameRules();
+    populateAllDropdowns();
+  });
+};
+
+// Populate dropdowns in the table
+function populateAllDropdowns() {
+  fetchSpreads(function(spreads) {
+    document.querySelectorAll('.spread-select').forEach(function(sel, idx) {
+      const row = sel.closest('tr');
+      const val = row.getAttribute('data-spread') || '';
+      sel.innerHTML = '<option value="">--</option>' + spreads.map(s => `<option value="${s.value}">${s.value}</option>`).join('');
+      if (val) sel.value = val;
+    });
+  });
+  fetchGameRules(function(rules) {
+    document.querySelectorAll('.gamerule-select').forEach(function(sel, idx) {
+      const row = sel.closest('tr');
+      const val = row.getAttribute('data-gamerules') || '';
+      sel.innerHTML = '<option value="">--</option>' + rules.map(r => `<option value="${r.value}">${r.value}</option>`).join('');
+      if (val) sel.value = val;
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', populateAllDropdowns);
+
+// Save button logic
+function saveRow(btn) {
+  const row = btn.closest('tr');
+  const bjId = row.getAttribute('data-bj-id');
+  const spread = row.querySelector('.spread-select').value;
+  const gameSpeed = row.querySelector('.game-speed-input').value;
+  const gameRules = row.querySelector('.gamerule-select').value;
+  const system = row.querySelector('.system-select').value;
+  fetch(`/api/blackjack_session/${bjId}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({spread, game_speed: gameSpeed, game_rules: gameRules, system})
+  }).then(r => {
+    if (r.ok) btn.textContent = 'Saved!';
+    setTimeout(() => { btn.textContent = 'Save'; }, 1200);
+  });
+}
+document.querySelectorAll('.save-bj-row').forEach(btn => {
+  btn.onclick = function() { saveRow(btn); };
+});
+
+// Chart.js rendering
+const bjChartData = {{ bj_chart|tojson|safe }};
+const bjBankrollData = {{ bj_bankroll|tojson|safe }};
+
+const bjPLChart = new Chart(document.getElementById('bjPLChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: '',
+      data: bjChartData && bjChartData.length > 0 ? bjChartData : [{ x: 0, y: 0 }],
+      parsing: false,
+      borderColor: '#00ff99',
+      backgroundColor: '#00ff9966',
+      tension: 0.3,
+      fill: false,
+      pointRadius: 3
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        titleFont: {
+          family: '"JetBrains Mono", monospace',
+          size: 12,
+          weight: '600'
+        },
+        bodyFont: {
+          family: '"JetBrains Mono", monospace',
+          size: 12,
+          weight: '400'
+        },
+        callbacks: {
+          label: function (context) {
+            return `$${context.parsed.y.toLocaleString()}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        title: {
+          display: true,
+          text: 'Hours',
+          color: '#aaa',
+          font: { family: '"JetBrains Mono", monospace', size: 11 }
+        },
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 }
+        },
+        grid: { color: '#333' }
+      },
+      y: {
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 },
+          callback: function (value) {
+            return `$${value.toLocaleString()}`;
+          }
+        },
+        grid: { color: '#333' }
+      }
+    }
+  }
+});
+
+const bjBankrollChart = new Chart(document.getElementById('bjBankrollChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: '',
+      data: bjBankrollData && bjBankrollData.length > 0 ? [{ x: bjBankrollData[0].x, y: 0 }, ...bjBankrollData] : [{ x: new Date().toISOString().split('T')[0], y: 0 }],
+      borderColor: '#66ccff',
+      backgroundColor: '#66ccff66',
+      tension: 0.3,
+      fill: false,
+      pointRadius: 3
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            return `$${context.parsed.y.toLocaleString()}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'day' },
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 }
+        },
+        grid: { color: '#333' }
+      },
+      y: {
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 },
+          callback: function (value) {
+            return `$${value.toLocaleString()}`;
+          }
+        },
+        grid: { color: '#333' }
+      }
+    }
+  }
+});
+</script>
 {% endblock %}

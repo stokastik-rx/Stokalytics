@@ -161,10 +161,13 @@ document.addEventListener('DOMContentLoaded', function () {
       const wrapper = document.createElement('div');
       wrapper.classList.add('chart', 'chart-narrow');
 
+      const labelHtml =
+        venture === 'Blackjack'
+          ? `<a href="/blackjack" style="text-decoration:none; color:${color}; border-color:${color};"><div class="chart-label" style="border-color: ${color}; color: ${color}; cursor:pointer;">Blackjack</div></a>`
+          : `<div class="chart-label" style="border-color: ${color}; color: ${color};">${venture}</div>`;
+
       wrapper.innerHTML = `
-        <div class="chart-label" style="border-color: ${color}; color: ${color};">
-          ${venture}
-        </div>
+        ${labelHtml}
         <canvas></canvas>
       `;
 

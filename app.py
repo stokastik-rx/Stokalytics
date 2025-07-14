@@ -11,6 +11,8 @@ import random
 from users import db, User
 from logs import SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord, LocationRecord, LedSessRecord
 from logs import LocationNote  # add LocationNote import
+from logs import BlackjackSpread, BlackjackGameRule
+from logs import BlackjackSession
 
 # --- Helper: Generate random HEX color ---
 def random_color():
@@ -235,18 +237,18 @@ def file_upload():
 
             try:
                 record = SessionRecord(  # type: ignore
-                    date=pd.to_datetime(row['Date']).date() if pd.notna(row['Date']) else None,
-                    location=row['Location'],
-                    type=row['Type'],
-                    stakes=row['Stakes'],
-                    time_in=parse_time(row['Time In']),
-                    time_out=parse_time(row['Time Out']),
-                    money_in=float(row['Money In']) if pd.notna(row['Money In']) else 0,
-                    money_out=float(row['Money Out']) if pd.notna(row['Money Out']) else 0,
-                    comps_in=float(row['Comps In']) if pd.notna(row['Comps In']) else 0,
-                    comps_out=float(row['Comps Out']) if pd.notna(row['Comps Out']) else 0,
-                    tips=float(row['Tips']) if pd.notna(row['Tips']) else 0,
-                    user_id=current_user.id  # ✅ secure the record
+                    date=pd.to_datetime(row['Date']).date() if pd.notna(row['Date']) else None,  # type: ignore
+                    location=row['Location'],  # type: ignore
+                    type=row['Type'],  # type: ignore
+                    stakes=row['Stakes'],  # type: ignore
+                    time_in=parse_time(row['Time In']),  # type: ignore
+                    time_out=parse_time(row['Time Out']),  # type: ignore
+                    money_in=float(row['Money In']) if pd.notna(row['Money In']) else 0,  # type: ignore
+                    money_out=float(row['Money Out']) if pd.notna(row['Money Out']) else 0,  # type: ignore
+                    comps_in=float(row['Comps In']) if pd.notna(row['Comps In']) else 0,  # type: ignore
+                    comps_out=float(row['Comps Out']) if pd.notna(row['Comps Out']) else 0,  # type: ignore
+                    tips=float(row['Tips']) if pd.notna(row['Tips']) else 0,  # type: ignore
+                    user_id=current_user.id  # type: ignore # ✅ secure the record
                 )
                 db.session.add(record)
             except Exception as e:
@@ -293,12 +295,46 @@ def delete_session(id):
 @login_required
 def view_logs():
     print("=== VIEW_LOGS CALLED ===")
-    sessions = SessionRecord.query.filter_by(user_id=current_user.id).all()
-    print(f"Found {len(sessions)} sessions for user {current_user.id}")
+    
+    # Check if filtering by type
+    session_type = request.args.get('type')
+    
+    if session_type:
+        sessions = SessionRecord.query.filter_by(user_id=current_user.id, type=session_type).all()
+        print(f"Found {len(sessions)} {session_type} sessions for user {current_user.id}")
+    else:
+        sessions = SessionRecord.query.filter_by(user_id=current_user.id).all()
+        print(f"Found {len(sessions)} sessions for user {current_user.id}")
+    
     # Build a mapping of location name to color
     locations = LocationRecord.query.filter_by(user_id=current_user.id).all()
     location_colors = {loc.name: loc.color for loc in locations}
-    return render_template('logs.html', sessions=sessions, datetime=datetime, location_colors=location_colors)
+    
+    # Get blackjack session data if filtering by blackjack
+    blackjack_sessions = {}
+    if session_type == 'Blackjack':
+        sync_blackjack_sessions()
+        from logs import BlackjackSession
+        bj_sessions = (
+            db.session.query(SessionRecord, BlackjackSession)
+            .join(BlackjackSession, BlackjackSession.session_id == SessionRecord.id)
+            .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Blackjack')
+            .all()
+        )
+        for s, bj in bj_sessions:
+            blackjack_sessions[s.id] = {
+                'spread': bj.spread or '',
+                'game_speed': bj.game_speed or '',
+                'game_rules': bj.game_rules or '',
+                'system': bj.system or ''
+            }
+    
+    return render_template('logs.html', 
+                         sessions=sessions, 
+                         datetime=datetime, 
+                         location_colors=location_colors,
+                         session_type=session_type,
+                         blackjack_sessions=blackjack_sessions)
 
 
 
@@ -370,19 +406,19 @@ def add_session():
     form = request.form
 
     try:
-        new_session = SessionRecord(
-            date=pd.to_datetime(form.get('date')).date() if form.get('date') else None,
-            location=form.get('location'),
-            type=form.get('type'),
-            stakes=form.get('stakes'),
-            time_in=parse_time(form.get('time_in')),
-            time_out=parse_time(form.get('time_out')),
-            money_in=float(form.get('money_in') or 0),
-            money_out=float(form.get('money_out') or 0),
-            comps_in=float(form.get('comps_in') or 0),
-            comps_out=float(form.get('comps_out') or 0),
-            tips=float(form.get('tips') or 0),
-            user_id=current_user.id  # ✅ correctly assign user ID
+        new_session = SessionRecord(  # type: ignore
+            date=pd.to_datetime(form.get('date')).date() if form.get('date') else None,  # type: ignore
+            location=form.get('location'),  # type: ignore
+            type=form.get('type'),  # type: ignore
+            stakes=form.get('stakes'),  # type: ignore
+            time_in=parse_time(form.get('time_in')),  # type: ignore
+            time_out=parse_time(form.get('time_out')),  # type: ignore
+            money_in=float(form.get('money_in') or 0),  # type: ignore
+            money_out=float(form.get('money_out') or 0),  # type: ignore
+            comps_in=float(form.get('comps_in') or 0),  # type: ignore
+            comps_out=float(form.get('comps_out') or 0),  # type: ignore
+            tips=float(form.get('tips') or 0),  # type: ignore
+            user_id=current_user.id  # type: ignore # ✅ correctly assign user ID
         )
 
         db.session.add(new_session)
@@ -477,7 +513,7 @@ def view_banking():
 def add_bank():
     name = request.form.get('bank_name')
     if name:
-        new_bank = BankRecord(name=name.strip(), user_id=current_user.id)
+        new_bank = BankRecord(name=name.strip(), user_id=current_user.id)  # type: ignore
         db.session.add(new_bank)
         db.session.commit()
     return redirect(url_for('view_banking'))
@@ -550,13 +586,13 @@ def update_ledger():
     form = request.form
 
     try:
-        new_entry = LedgerRecord(
-            date=pd.to_datetime(form.get('date')).date(),
-            account=form.get('account'),
-            withdrawal=float(form.get('withdrawal') or 0),
-            deposit=float(form.get('deposit') or 0),
-            venture=form.get('venture'),
-            user_id=current_user.id  # ✅ secure association
+        new_entry = LedgerRecord(  # type: ignore
+            date=pd.to_datetime(form.get('date')).date(),  # type: ignore
+            account=form.get('account'),  # type: ignore
+            withdrawal=float(form.get('withdrawal') or 0),  # type: ignore
+            deposit=float(form.get('deposit') or 0),  # type: ignore
+            venture=form.get('venture'),  # type: ignore
+            user_id=current_user.id  # type: ignore # ✅ secure association
         )
         db.session.add(new_entry)
         db.session.commit()
@@ -602,30 +638,96 @@ def edit_ledger_entry(ledger_id):
 @app.route('/blackjack')
 @login_required
 def view_blackjack():
-    session_rows = SessionRecord.query.filter_by(user_id=current_user.id, type='Blackjack').all()
-    session_data = [
-        {
-            "date": s.date,
-            "change": (s.money_out or 0) - (s.money_in or 0),
-            "source": "session"
-        }
-        for s in session_rows
-    ]
-
-    ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Blackjack').all()
-    ledger_data = [
-        {
-            "date": l.date,
-            "change": (l.withdrawal or 0) - (l.deposit or 0),
-            "source": "ledger"
-        }
-        for l in ledger_rows
-    ]
-
-    all_data = session_data + ledger_data
-    all_data.sort(key=lambda x: x["date"])
-
-    return render_template('blackjack.html', records=all_data)
+    sync_blackjack_sessions()
+    from logs import BlackjackSession, SessionRecord, LedgerRecord
+    # Get all blackjack sessions for this user
+    sessions = (
+        db.session.query(SessionRecord, BlackjackSession)
+        .join(BlackjackSession, BlackjackSession.session_id == SessionRecord.id)
+        .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Blackjack')
+        .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
+        .all()
+    )
+    # Prepare data for template
+    records = []
+    total_sessions = 0
+    total_hours = 0.0
+    total_profit = 0.0
+    best_session = float('-inf')
+    worst_session = float('inf')
+    for s, bj in sessions:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        # Calculate duration in hours
+        if s.time_in and s.time_out:
+            duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            if duration_hours > 0:
+                hourly_rate = profit / duration_hours
+            else:
+                hourly_rate = None
+        else:
+            duration_hours = None
+            hourly_rate = None
+        records.append({
+            'id': bj.id,
+            'date': s.date,
+            'change': profit,
+            'source': 'session',
+            'spread': bj.spread or '',
+            'game_speed': bj.game_speed or '',
+            'game_rules': bj.game_rules or '',
+            'system': bj.system or '',
+            'duration_hours': duration_hours,
+            'hourly_rate': hourly_rate
+        })
+        total_sessions += 1
+        if s.time_in and s.time_out:
+            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            total_hours += duration
+        if profit > best_session:
+            best_session = profit
+        if profit < worst_session:
+            worst_session = profit
+        total_profit += profit
+    if total_sessions == 0:
+        best_session = 0.0
+        worst_session = 0.0
+    # Blackjack P/L chart (cumulative profit over time)
+    # --- FIX: plot chart in chronological order ---
+    sessions_chrono = list(reversed(sessions))
+    chart_points = []
+    cumulative = 0
+    hours = 0
+    for s, bj in sessions_chrono:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        cumulative += profit
+        if s.time_in and s.time_out:
+            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            hours += duration
+        chart_points.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
+    # Ensure chart always starts at x=0
+    if not chart_points or chart_points[0]['x'] != 0:
+        chart_points = [{'x': 0, 'y': 0}] + chart_points
+    # Blackjack Bankroll chart (from ledger and sessions)
+    ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Blackjack').order_by(LedgerRecord.date).all()
+    combined = []
+    for s, bj in sessions_chrono:
+        combined.append({'date': s.date, 'change': (s.money_out or 0) - (s.money_in or 0)})
+    for l in ledger_rows:
+        combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
+    combined.sort(key=lambda x: x['date'])
+    bankroll_points = []
+    bankroll = 0
+    for item in combined:
+        bankroll += item['change']
+        bankroll_points.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
+    bj_stats = {
+        'total_sessions': total_sessions,
+        'total_hours': total_hours,
+        'total_profit': total_profit,
+        'best_session': best_session,
+        'worst_session': worst_session
+    }
+    return render_template('blackjack.html', records=records, bj_chart=chart_points, bj_bankroll=bankroll_points, bj_stats=bj_stats)
 
 
 
@@ -868,10 +970,10 @@ def sync_ledsess():
             continue
         key = (entry.date, entry.account, round(-delta, 2))
         seen[key] = LedSessRecord(  # type: ignore
-            date=entry.date,
-            type=entry.account,
-            value=-delta,
-            user_id=current_user.id
+            date=entry.date,  # type: ignore
+            type=entry.account,  # type: ignore
+            value=-delta,  # type: ignore
+            user_id=current_user.id  # type: ignore
         )
         print(f'  [Ledger] {entry.date} {entry.account} {round(-delta,2)}')
 
@@ -883,10 +985,10 @@ def sync_ledsess():
             continue
         key = (sess.date, sess.type, round(profit, 2))
         seen[key] = LedSessRecord(  # type: ignore
-            date=sess.date,
-            type=sess.type,
-            value=profit,
-            user_id=current_user.id
+            date=sess.date,  # type: ignore
+            type=sess.type,  # type: ignore
+            value=profit,  # type: ignore
+            user_id=current_user.id  # type: ignore
         )
         print(f'  [Session] {sess.date} {sess.type} {round(profit,2)}')
 
@@ -895,6 +997,41 @@ def sync_ledsess():
         db.session.bulk_save_objects(seen.values())
     db.session.commit()
     print(f'[sync_ledsess] {len(seen)} LedSessRecords created for user {current_user.id}')
+
+
+def sync_blackjack_sessions():
+    """Sync BlackjackSession records from SessionRecord where type is 'Blackjack'"""
+    from logs import BlackjackSession, SessionRecord
+    
+    # Get all Blackjack sessions that don't have corresponding BlackjackSession records
+    blackjack_sessions = (
+        SessionRecord.query
+        .filter_by(user_id=current_user.id, type='Blackjack')
+        .all()
+    )
+    
+    created_count = 0
+    for session in blackjack_sessions:
+        # Check if BlackjackSession already exists for this session
+        existing = BlackjackSession.query.filter_by(session_id=session.id).first()
+        if not existing:
+            # Create new BlackjackSession record
+            bj_session = BlackjackSession(  # type: ignore
+                session_id=session.id,  # type: ignore
+                user_id=current_user.id,  # type: ignore
+                spread='',  # type: ignore
+                game_speed='',  # type: ignore
+                game_rules='',  # type: ignore
+                system=''  # type: ignore
+            )
+            db.session.add(bj_session)
+            created_count += 1
+    
+    if created_count > 0:
+        db.session.commit()
+        print(f'[sync_blackjack_sessions] Created {created_count} BlackjackSession records for user {current_user.id}')
+    else:
+        print(f'[sync_blackjack_sessions] No new BlackjackSession records needed for user {current_user.id}')
 
 
 
@@ -967,6 +1104,74 @@ def api_recent_sessions():
             'date': s.date.strftime('%m/%d') if s.date else ''
         })
     return jsonify(result)
+
+@app.route('/api/blackjack_spreads', methods=['GET', 'POST'])
+@login_required
+def api_blackjack_spreads():
+    if request.method == 'POST':
+        value = request.form.get('value', '').strip()
+        if not value:
+            return jsonify(success=False, error='No value provided'), 400
+        # Prevent duplicates for this user
+        if BlackjackSpread.query.filter_by(user_id=current_user.id, value=value).first():
+            return jsonify(success=False, error='Spread already exists'), 400
+        spread = BlackjackSpread(user_id=current_user.id, value=value)
+        db.session.add(spread)
+        db.session.commit()
+        return jsonify(success=True, id=spread.id, value=spread.value)
+    # GET: return all for this user
+    spreads = BlackjackSpread.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{'id': s.id, 'value': s.value} for s in spreads])
+
+@app.route('/api/blackjack_spreads/<int:spread_id>', methods=['DELETE'])
+@login_required
+def api_delete_blackjack_spread(spread_id):
+    spread = BlackjackSpread.query.get(spread_id)
+    if not spread or spread.user_id != current_user.id:
+        return jsonify(success=False, error='Not found'), 404
+    db.session.delete(spread)
+    db.session.commit()
+    return jsonify(success=True)
+
+@app.route('/api/blackjack_gamerules', methods=['GET', 'POST'])
+@login_required
+def api_blackjack_gamerules():
+    if request.method == 'POST':
+        value = request.form.get('value', '').strip()
+        if not value:
+            return jsonify(success=False, error='No value provided'), 400
+        if BlackjackGameRule.query.filter_by(user_id=current_user.id, value=value).first():
+            return jsonify(success=False, error='Game rule already exists'), 400
+        rule = BlackjackGameRule(user_id=current_user.id, value=value)
+        db.session.add(rule)
+        db.session.commit()
+        return jsonify(success=True, id=rule.id, value=rule.value)
+    rules = BlackjackGameRule.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{'id': r.id, 'value': r.value} for r in rules])
+
+@app.route('/api/blackjack_gamerules/<int:rule_id>', methods=['DELETE'])
+@login_required
+def api_delete_blackjack_gamerule(rule_id):
+    rule = BlackjackGameRule.query.get(rule_id)
+    if not rule or rule.user_id != current_user.id:
+        return jsonify(success=False, error='Not found'), 404
+    db.session.delete(rule)
+    db.session.commit()
+    return jsonify(success=True)
+
+@app.route('/api/blackjack_session/<int:bj_id>', methods=['POST'])
+@login_required
+def update_blackjack_session(bj_id):
+    from logs import BlackjackSession
+    bj = BlackjackSession.query.get(bj_id)
+    if not bj or bj.user_id != current_user.id:
+        return jsonify(success=False, error='Not found'), 404
+    data = request.get_json() or request.form
+    for field in ['spread', 'game_speed', 'game_rules', 'system']:
+        if field in data:
+            setattr(bj, field, data[field])
+    db.session.commit()
+    return jsonify(success=True)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5555, debug=False)

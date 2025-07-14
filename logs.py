@@ -96,3 +96,26 @@ class LocationNote(db.Model):
 
     location = db.relationship('LocationRecord', backref=db.backref('notes', lazy=True, cascade='all, delete-orphan'))
 
+
+class BlackjackSpread(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    value = db.Column(db.String(50), nullable=False)
+
+class BlackjackGameRule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    value = db.Column(db.String(100), nullable=False)
+
+
+class BlackjackSession(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('session_record.id'), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    spread = db.Column(db.String(50))
+    game_speed = db.Column(db.String(5))
+    game_rules = db.Column(db.String(100))
+    system = db.Column(db.String(50))
+    # Relationship to session
+    session = db.relationship('SessionRecord', backref=db.backref('blackjack_session', uselist=False))
+

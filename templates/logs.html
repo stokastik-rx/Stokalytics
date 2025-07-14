@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-  <h1>Session Logs</h1>
+  <h1>{% if session_type %}{{ session_type }} Logs{% else %}Session Logs{% endif %}</h1>
 
   <!-- Top Row -->
   <div class="button-row">
@@ -40,6 +40,12 @@
             <th style="width: 65px;">Comps In</th>
             <th style="width: 65px;">Comps Out</th>
             <th style="width: 55px;">Tips</th>
+            {% if session_type == 'Blackjack' %}
+            <th style="width: 70px;">Spread</th>
+            <th style="width: 70px;">Game Speed</th>
+            <th style="width: 80px;">Game Rules</th>
+            <th style="width: 80px;">System</th>
+            {% endif %}
           </tr>
         </thead>
         <tbody>
@@ -78,6 +84,20 @@
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ "$%.2f"|format(session.tips) if session.tips is not none else '—' }}
             </td>
+            {% if session_type == 'Blackjack' %}
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ blackjack_sessions.get(session.id, {}).get('spread', '—') }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ blackjack_sessions.get(session.id, {}).get('game_speed', '—') }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ blackjack_sessions.get(session.id, {}).get('game_rules', '—') }}
+            </td>
+            <td style="white-space: nowrap; vertical-align: middle;">
+              {{ blackjack_sessions.get(session.id, {}).get('system', '—') }}
+            </td>
+            {% endif %}
           </tr>
           {% endfor %}
         </tbody>

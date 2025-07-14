@@ -104,6 +104,7 @@ h1 {
   font-size: 20px;
   margin-bottom: 10px;
   color: #ffffff;
+  font-family: 'Consolas', 'Courier New', monospace;
 }
 
 .button-row {
@@ -461,7 +462,7 @@ input[type=number]::-webkit-inner-spin-button {
 }
 
 .chart-label {
-  font-family: inherit;
+  font-family: 'Consolas', 'Courier New', monospace;
   font-weight: 600;
   font-size: 1rem;
   background-color: #000;
@@ -728,4 +729,58 @@ input[type=number]::-webkit-inner-spin-button {
 .modal-content .trash-btn:hover {
   background-color: rgba(255, 0, 0, 0.1);
   color: var(--red-400);
+}
+
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 4px;
+  border: 2px solid #1a1a1a;
+}
+.table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #444 #1a1a1a;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.styled-select {
+  background-color: #111;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+.styled-select:focus {
+  border-color: #66ccff;
+}
+
+.styled-input {
+  background-color: #111;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+  box-sizing: border-box;
+}
+.styled-input:focus {
+  border-color: #66ccff;
 }
