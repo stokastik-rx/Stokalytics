@@ -12,7 +12,8 @@
     <a href="{{ url_for('view_comps') }}" class="btn">Comps</a>
     <a href="{{ url_for('view_locations') }}" class="btn">Locations</a>
 
-    <a href="{{ url_for('login')}}" class="btn btn-outline-red" style="margin-left:auto">Logout</a>
+    <a href="{{ url_for('landing_direct') }}" class="btn" style="margin-left:auto">🏠 Landing</a>
+    <a href="{{ url_for('logout')}}" class="btn btn-outline-red">Logout</a>
 
     
   </div>
@@ -63,18 +64,48 @@
     
     <!-- Sidebar -->
     <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; max-height: 90vh;">
-      <h3 style="color: #ffffff; font-family: Consolas, monospace;">Ventures</h3>
+      <h3 style="color: #ffffff; font-family: Consolas, monospace;">
+        {% if game_preference == 'blackjack' %}
+          🃏 Blackjack
+        {% elif game_preference == 'poker' %}
+          ♠️ Poker
+        {% else %}
+          Ventures
+        {% endif %}
+      </h3>
       <ul style="list-style: none; padding-left: 0;">
         {% for type in unique_types %}
           <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">
             {% if type == 'Blackjack' %}
               <a href="{{ url_for('view_blackjack') }}" style="color: #00ffff; text-decoration: none; font-weight: bold;">Blackjack</a>
+            {% elif type == 'Poker' %}
+              <span style="color: #ff66cc; font-weight: bold;">Poker</span>
             {% else %}
               {{ type }}
             {% endif %}
           </li>
         {% endfor %}
       </ul>
+      <!-- Additional Navigation for Single-Game Users -->
+      {% if game_preference != 'both' %}
+        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #333;">
+          <h4 style="color: #ccc; font-family: Consolas, monospace; margin-bottom: 1rem;">Quick Actions</h4>
+          <ul style="list-style: none; padding-left: 0;">
+            <li style="color: #aaa; padding: 0.25rem 0;">
+              <a href="{{ url_for('view_banking') }}" style="color: #66ccff; text-decoration: none;">💰 Banking</a>
+            </li>
+            <li style="color: #aaa; padding: 0.25rem 0;">
+              <a href="{{ url_for('view_comps') }}" style="color: #ffaa00; text-decoration: none;">🎁 Comps</a>
+            </li>
+            <li style="color: #aaa; padding: 0.25rem 0;">
+              <a href="{{ url_for('view_locations') }}" style="color: #00ff99; text-decoration: none;">🏢 Locations</a>
+            </li>
+            <li style="color: #aaa; padding: 0.25rem 0;">
+              <a href="{{ url_for('view_logs') }}" style="color: #ccc; text-decoration: none;">📊 All Sessions</a>
+            </li>
+          </ul>
+        </div>
+      {% endif %}
     </div>
 
     <!-- Right column: all charts -->

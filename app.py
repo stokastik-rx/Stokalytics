@@ -48,6 +48,16 @@ def load_user(user_id):
 
 
 @app.route('/')
+def landing():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return render_template('landing.html')
+
+@app.route('/landing')
+def landing_direct():
+    return render_template('landing.html')
+
+@app.route('/dashboard')
 @login_required
 def dashboard():
     from collections import defaultdict
@@ -143,7 +153,8 @@ def dashboard():
         chart_data=chart_points,
         unique_types=unique_types,
         combined_chart_data=combined_chart_data,
-        venture_chart_data=venture_chart_data
+        venture_chart_data=venture_chart_data,
+        game_preference=current_user.game_preference
     )
 
 
@@ -171,11 +182,12 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        game_preference = request.form.get('game_preference', 'both')
 
         if User.query.filter_by(username=username).first():
             return "Username already exists"
 
-        new_user = User(username=username, email=email)  # type: ignore
+        new_user = User(username=username, email=email, game_preference=game_preference)  # type: ignore
         new_user.set_password(password)
 
         db.session.add(new_user)
@@ -1172,6 +1184,10 @@ def update_blackjack_session(bj_id):
             setattr(bj, field, data[field])
     db.session.commit()
     return jsonify(success=True)
+
+@app.route('/landing-standalone')
+def landing_standalone():
+    return render_template('landing-standalone.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5555, debug=False)

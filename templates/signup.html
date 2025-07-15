@@ -12,6 +12,16 @@
              style="width: 100%; padding: 10px; background-color: #111; border: 1px solid #333; color: #eee;">
       <input name="password" type="password" placeholder="Password" required class="input"
              style="width: 100%; padding: 10px; background-color: #111; border: 1px solid #333; color: #eee;">
+      
+      <div style="margin-bottom: 1rem;">
+        <label style="color: #ccc; font-family: 'JetBrains Mono', monospace; margin-bottom: 0.5rem; display: block;">What will you be using Stokalytics for?</label>
+        <select name="game_preference" required class="styled-select" style="width: 100%; padding: 10px; background-color: #111; border: 1px solid #333; color: #eee;">
+          <option value="">Select your primary focus...</option>
+          <option value="blackjack">🃏 Blackjack Only</option>
+          <option value="poker">♠️ Poker Only</option>
+          <option value="both">🎯 Both Blackjack & Poker</option>
+        </select>
+      </div>
 
       <button type="submit" class="btn btn-outline-green" style="width: 100%;">Create Account</button>
     </form>

@@ -27,8 +27,8 @@ table {
   width: 100%;
   border-collapse: collapse;
   background-color: #111;
-  color: #aaa
-  ;
+  color: #aaa;
+  table-layout: fixed;
 }
 
 th, td {
@@ -240,12 +240,27 @@ input[type="submit"] {
 }
 
 .table-main {
-  min-width: 1000px;
-  ;
+  min-width: 800px;
+  flex: 1;
 }
 
 .table-stats {
-  min-width: 180px;
+  min-width: 150px;
+  max-width: 260px;
+  flex-shrink: 0;
+}
+
+.table-stats td, .table-stats th {
+  font-size: 0.95rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  line-height: 1.4;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90px;
+  overflow: hidden;
 }
 
 .checkbox-cell {
@@ -320,6 +335,9 @@ canvas {
   display: block;
   width: 100% !important;
   height: auto;
+  /* Ensure crisp rendering on high-DPI displays */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 
@@ -757,13 +775,15 @@ input[type=number]::-webkit-inner-spin-button {
   border: 1px solid #333;
   border-radius: 4px;
   padding: 6px 10px;
-  font-family: inherit;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 14px;
   outline: none;
   transition: border 0.2s;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 .styled-select:focus {
   border-color: #66ccff;
@@ -780,6 +800,7 @@ input[type=number]::-webkit-inner-spin-button {
   outline: none;
   transition: border 0.2s;
   box-sizing: border-box;
+  width: 100%;
 }
 .styled-input:focus {
   border-color: #66ccff;

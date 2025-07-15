@@ -66,9 +66,9 @@
                   {% endif %}
                 )</span>
               </td>
-              <td><select class="spread-select styled-select" style="width:120px;"></select></td>
+              <td><select class="spread-select styled-select"></select></td>
               <td>
-                <select class="system-select styled-select" style="width:120px;">
+                <select class="system-select styled-select">
                   <option value="">--</option>
                   <option value="Hi-Lo" {% if row.system == 'Hi-Lo' %}selected{% endif %}>Hi-Lo</option>
                   <option value="KO" {% if row.system == 'KO' %}selected{% endif %}>KO</option>
@@ -76,8 +76,8 @@
                   <option value="No Count" {% if row.system == 'No Count' %}selected{% endif %}>No Count</option>
                 </select>
               </td>
-              <td><select class="gamerule-select styled-select" style="width:120px;"></select></td>
-              <td><input type="number" class="game-speed-input styled-input" min="0" max="999" maxlength="3" style="width:120px;" value="{{ row.game_speed if row.game_speed else 100 }}"></td>
+              <td><select class="gamerule-select styled-select"></select></td>
+              <td><input type="number" class="game-speed-input styled-input" min="0" max="999" maxlength="3" value="{{ row.game_speed if row.game_speed else 100 }}"></td>
               <td class="ev-cell">--</td>
               <td class="variance-cell">--</td>
             </tr>
@@ -249,6 +249,11 @@ document.querySelectorAll('.save-bj-row').forEach(btn => {
 });
 
 // Chart.js rendering
+// Set device pixel ratio for crisp rendering on high-DPI displays
+Chart.defaults.responsive = true;
+Chart.defaults.maintainAspectRatio = false;
+Chart.defaults.devicePixelRatio = window.devicePixelRatio || 1;
+
 const bjChartData = {{ bj_chart|tojson|safe }};
 const bjBankrollData = {{ bj_bankroll|tojson|safe }};
 

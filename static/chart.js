@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
+  // === High-DPI Display Support ===
+  // Set device pixel ratio for crisp rendering on high-DPI displays
+  Chart.defaults.responsive = true;
+  Chart.defaults.maintainAspectRatio = false;
+  Chart.defaults.devicePixelRatio = window.devicePixelRatio || 1;
+
   // === Venture Color Map ===
   const ventureColors = {
     Blackjack: '#00ffff',

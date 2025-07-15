@@ -3,15 +3,17 @@ from __future__ import annotations
 import contextlib
 import os
 import sys
-from typing import TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, Union
 
 from more_itertools import unique_everseen
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
-StrPath: TypeAlias = Union[str, os.PathLike[str]]  #  Same as _typeshed.StrPath
-StrPathT = TypeVar("StrPathT", bound=Union[str, os.PathLike[str]])
+    StrPath: TypeAlias = Union[str, os.PathLike[str]]  #  Same as _typeshed.StrPath
+else:
+    # Python 3.8 support
+    StrPath: TypeAlias = Union[str, os.PathLike]
 
 
 def ensure_directory(path):
@@ -39,20 +41,11 @@ def same_path(p1: StrPath, p2: StrPath) -> bool:
     return normpath(p1) == normpath(p2)
 
 
-def _cygwin_patch(filename: StrPath):  # pragma: nocover
-    """
-    Contrary to POSIX 2008, on Cygwin, getcwd (3) contains
-    symlink components. Using
-    os.path.abspath() works around this limitation. A fix in os.getcwd()
-    would probably better, in Cygwin even more so, except
-    that this seems to be by design...
-    """
-    return os.path.abspath(filename) if sys.platform == 'cygwin' else filename
-
-
 def normpath(filename: StrPath) -> str:
     """Normalize a file/dir name for comparison purposes."""
-    return os.path.normcase(os.path.realpath(os.path.normpath(_cygwin_patch(filename))))
+    # See pkg_resources.normalize_path for notes about cygwin
+    file = os.path.abspath(filename) if sys.platform == 'cygwin' else filename
+    return os.path.normcase(os.path.realpath(os.path.normpath(file)))
 
 
 @contextlib.contextmanager

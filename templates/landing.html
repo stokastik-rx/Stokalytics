@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="min-height: 100vh; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;">
+  
+  <!-- Hero Section -->
+  <div style="text-align: center; max-width: 800px; margin-bottom: 3rem;">
+    <h1 style="font-size: 3.5rem; color: #00ff99; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem; text-shadow: 0 0 20px rgba(0, 255, 153, 0.3);">
+      Stokalytics
+    </h1>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 1.2em; margin-bottom: 1.5rem; flex-wrap: nowrap;">
+      <span style="font-size:2.2rem; color:#fff; font-family:'JetBrains Mono',monospace; white-space:nowrap;">Treat your</span>
+      <span id="slot-machine-container" class="slot-machine-container" style="vertical-align: middle; margin: 0 0.7em;">
+        <span class="slot-reel-col">
+          <span class="slot-reel" id="slot-reel-1">
+            <span class="slot-item slot-fade" id="slot1-top"></span>
+            <span class="slot-item slot-active" id="slot1-mid"></span>
+            <span class="slot-item slot-fade" id="slot1-bot"></span>
+          </span>
+        </span>
+        <span class="slot-divider"></span>
+        <span class="slot-reel-col">
+          <span class="slot-reel" id="slot-reel-2">
+            <span class="slot-item slot-fade" id="slot2-top"></span>
+            <span class="slot-item slot-active" id="slot2-mid"></span>
+            <span class="slot-item slot-fade" id="slot2-bot"></span>
+          </span>
+        </span>
+        <span class="slot-divider"></span>
+        <span class="slot-reel-col">
+          <span class="slot-reel" id="slot-reel-3">
+            <span class="slot-item slot-fade" id="slot3-top"></span>
+            <span class="slot-item slot-active" id="slot3-mid"></span>
+            <span class="slot-item slot-fade" id="slot3-bot"></span>
+          </span>
+        </span>
+      </span>
+      <span style="font-size:2.2rem; color:#fff; font-family:'JetBrains Mono',monospace; white-space:nowrap;">like a business.</span>
+    </div>
+    <p style="font-size: 1.5rem; color: #ccc; margin-bottom: 2rem; font-family: 'JetBrains Mono', monospace;">
+      Professional Gambling Analytics & Bankroll Management
+    </p>
+    <p style="font-size: 1.1rem; color: #aaa; line-height: 1.6; margin-bottom: 3rem;">
+      Track your sessions, analyze performance, and optimize your play with advanced analytics designed for serious players.
+    </p>
+  </div>
+
+  <!-- Game Types Section -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem; width: 100%; max-width: 900px;">
+    
+    <!-- Blackjack Card -->
+    <div style="background: #111; border: 2px solid #00ffff; border-radius: 15px; padding: 2rem; text-align: center; transition: transform 0.3s ease, box-shadow 0 0 30px rgba(0, 255, 255, 0.1);" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0, 255, 255, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">🃏</div>
+      <h3 style="color: #00ffff; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;">Blackjack</h3>
+      <ul style="text-align: left; color: #ccc; list-style: none; padding: 0;">
+        <li style="margin-bottom: 0.5rem;">✓ Spread tracking & management</li>
+        <li style="margin-bottom: 0.5rem;">✓ Counting system analysis</li>
+        <li style="margin-bottom: 0.5rem;">✓ Game rules & speed monitoring</li>
+        <li style="margin-bottom: 0.5rem;">✓ Hourly rate calculations</li>
+        <li style="margin-bottom: 0.5rem;">✓ Variance analysis</li>
+      </ul>
+    </div>
+
+    <!-- Poker Card -->
+    <div style="background: #111; border: 2px solid #ff66cc; border-radius: 15px; padding: 2rem; text-align: center; transition: transform 0.3s ease, box-shadow 0 0 30px rgba(255, 102, 204, 0.1);" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(255, 102, 204, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">♠️</div>
+      <h3 style="color: #ff66cc; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;">Poker</h3>
+      <ul style="text-align: left; color: #ccc; list-style: none; padding: 0;">
+        <li style="margin-bottom: 0.5rem;">✓ Session tracking & analysis</li>
+        <li style="margin-bottom: 0.5rem;">✓ Stakes & hourly rates</li>
+        <li style="margin-bottom: 0.5rem;">✓ Performance metrics</li>
+        <li style="margin-bottom: 0.5rem;">✓ Bankroll management</li>
+        <li style="margin-bottom: 0.5rem;">✓ Long-term profitability tracking</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Features Section -->
+  <div style="background: #111; border-radius: 15px; padding: 2rem; margin-bottom: 3rem; width: 100%; max-width: 900px;">
+    <h3 style="color: #00ff99; font-family: 'JetBrains Mono', monospace; text-align: center; margin-bottom: 2rem;">Advanced Features</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+        <h4 style="color: #fff; margin-bottom: 0.5rem;">Interactive Charts</h4>
+        <p style="color: #aaa; font-size: 0.9rem;">Real-time performance visualization with cumulative profit tracking</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">💰</div>
+        <h4 style="color: #fff; margin-bottom: 0.5rem;">Bankroll Management</h4>
+        <p style="color: #aaa; font-size: 0.9rem;">Track deposits, withdrawals, and manage multiple accounts</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏢</div>
+        <h4 style="color: #fff; margin-bottom: 0.5rem;">Location Tracking</h4>
+        <p style="color: #aaa; font-size: 0.9rem;">Monitor performance across different casinos and venues</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎁</div>
+        <h4 style="color: #fff; margin-bottom: 0.5rem;">Comps Tracking</h4>
+        <p style="color: #aaa; font-size: 0.9rem;">Log and analyze comps, rewards, and promotional play</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div style="text-align: center;">
+    <div style="margin-bottom: 2rem;">
+      <a href="{{ url_for('signup') }}" style="background: linear-gradient(45deg, #00ff99, #00ccff); color: #000; padding: 1rem 3rem; text-decoration: none; border-radius: 50px; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 1.2rem; transition: transform 0.3s ease, box-shadow 0.3s ease; display: inline-block;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 10px 30px rgba(0, 255, 153, 0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+        Get Started
+      </a>
+    </div>
+    <p style="color: #666; font-size: 0.9rem;">
+      Already have an account? <a href="{{ url_for('login') }}" style="color: #00ff99; text-decoration: none;">Sign In</a>
+    </p>
+  </div>
+
+</div>
+<style>
+.hero-row {
+  flex-wrap: nowrap !important;
+  gap: 1.2em;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}
+.slot-machine-container {
+  display: inline-flex;
+  align-items: center;
+  background: #181818;
+  border: 3px solid #00ff99;
+  border-radius: 16px;
+  box-shadow: 0 2px 24px #00ff9933;
+  padding: 0.4em 1.2em;
+  margin: 0 0.7em;
+}
+.slot-reel-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 200px;
+  height: 4.5em;
+  justify-content: center;
+  position: relative;
+  background: #101010;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.slot-reel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  position: relative;
+}
+.slot-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2em;
+  width: 100%;
+  text-align: center;
+  transition: color 0.2s, background 0.2s, opacity 0.2s, font-size 0.2s;
+  padding: 0.25em 0;
+  height: 2.5em;
+  line-height: 2em;
+  box-sizing: border-box;
+  letter-spacing: 0.5px;
+  will-change: transform, opacity;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slot-item.tournament {
+  font-size: 1.4em !important;
+}
+.slot-item.sportsbetting {
+  font-size: 1.4em !important;
+}
+.slot-active {
+  background: #181818;
+  font-weight: bold;
+  font-size: 2em;
+  border-radius: 4px;
+  box-shadow: 0 0 12px #00ff99cc;
+  z-index: 2;
+  color: inherit;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  height: 2.5em;
+  line-height: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slot-fade {
+  color: #444;
+  opacity: 0.5;
+  font-size: 1.3em;
+  font-weight: normal;
+  z-index: 1;
+}
+.slot-divider {
+  width: 3px;
+  height: 3.5em;
+  background: linear-gradient(to bottom, #00ff99 0%, #222 100%);
+  margin: 0 0.7em;
+  border-radius: 2px;
+}
+</style>
+<script>
+const slotPhrases = [
+  {text: "poker", color: "#ff66cc"},
+  {text: "blackjack", color: "#00ff99"},
+  {text: "trading", color: "#00bfff"},
+  {text: "tournaments", color: "#ffaa33"},
+  {text: "sportsbetting", color: "#ff6b35"}
+];
+let slot1 = 0, slot2 = 1, slot3 = 2;
+function getSlot(idx, offset) {
+  const arr = slotPhrases;
+  return arr[(idx + offset + arr.length) % arr.length];
+}
+function setSlotItem(el, phraseObj) {
+  el.textContent = phraseObj.text;
+  el.style.color = phraseObj.color;
+  if (phraseObj.text === "tournaments") {
+    el.classList.add("tournament");
+    el.classList.remove("sportsbetting");
+  } else if (phraseObj.text === "sportsbetting") {
+    el.classList.add("sportsbetting");
+    el.classList.remove("tournament");
+  } else {
+    el.classList.remove("tournament");
+    el.classList.remove("sportsbetting");
+  }
+}
+function getThreeUniqueIndices() {
+  let indices = [];
+  let pool = [0,1,2,3,4];
+  for (let i = 0; i < 3; i++) {
+    let idx = Math.floor(Math.random() * pool.length);
+    indices.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+  return indices;
+}
+function animateReel(reel, idx, duration=420) {
+  const top = document.getElementById(reel+'-top');
+  const mid = document.getElementById(reel+'-mid');
+  const bot = document.getElementById(reel+'-bot');
+  [top, mid, bot].forEach(el => {
+    el.style.animation = `slot-spin ${duration}ms cubic-bezier(.68,-0.55,.27,1.55)`;
+  });
+  setTimeout(() => {
+    setSlotItem(top, getSlot(idx, -1));
+    setSlotItem(mid, getSlot(idx, 0));
+    setSlotItem(bot, getSlot(idx, 1));
+    [top, mid, bot].forEach(el => {
+      el.style.animation = '';
+    });
+  }, duration - 20);
+}
+function spinAll() {
+  // Get 3 unique target indices
+  const targets = getThreeUniqueIndices();
+  slot1 = targets[0];
+  slot2 = targets[1];
+  slot3 = targets[2];
+  animateReel('slot1', slot1);
+  animateReel('slot2', slot2);
+  animateReel('slot3', slot3);
+}
+// Initial render
+setSlotItem(document.getElementById('slot1-top'), getSlot(slot1, -1));
+setSlotItem(document.getElementById('slot1-mid'), getSlot(slot1, 0));
+setSlotItem(document.getElementById('slot1-bot'), getSlot(slot1, 1));
+setSlotItem(document.getElementById('slot2-top'), getSlot(slot2, -1));
+setSlotItem(document.getElementById('slot2-mid'), getSlot(slot2, 0));
+setSlotItem(document.getElementById('slot2-bot'), getSlot(slot2, 1));
+setSlotItem(document.getElementById('slot3-top'), getSlot(slot3, -1));
+setSlotItem(document.getElementById('slot3-mid'), getSlot(slot3, 0));
+setSlotItem(document.getElementById('slot3-bot'), getSlot(slot3, 1));
+// Spin intervals with animation
+setInterval(() => { spinAll(); }, 3000);
+</script>
+{% endblock %} 
