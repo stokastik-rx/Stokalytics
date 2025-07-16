@@ -119,3 +119,23 @@ class BlackjackSession(db.Model):
     # Relationship to session
     session = db.relationship('SessionRecord', backref=db.backref('blackjack_session', uselist=False))
 
+
+class Reminder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    feedback_type = db.Column(db.String(50), nullable=False)  # Bug Report or Feature Request
+    significance = db.Column(db.Integer, nullable=False)  # 1-5
+    subject = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship to user
+    user = db.relationship('User', backref=db.backref('feedback', lazy=True))
+

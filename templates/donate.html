@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block body_class %}donate-page{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Support Development</h1>
+  
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <p style="color: #ccc; font-size: 1.1em; max-width: 600px; margin: 0 auto;">
+      Help us build the ultimate poker and blackjack analytics platform. Your support enables new features, improvements, and helps us continue developing the platform.
+    </p>
+  </div>
+
+  <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 3rem;">
+    
+    <!-- $10 Tier -->
+    <div class="donation-tier" style="background: #111; border: 2px solid #333; border-radius: 12px; padding: 2rem; width: 280px; text-align: center; position: relative;">
+      <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #00ff99; color: #000; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; font-size: 0.9em;">
+        BETA SUPPORTER
+      </div>
+      
+      <h2 style="color: #00ff99; font-size: 2.5em; margin: 1rem 0 0.5rem 0;">$10</h2>
+      <p style="color: #ccc; margin-bottom: 1.5rem;">Early Access Supporter</p>
+      
+      <ul style="list-style: none; padding: 0; text-align: left; color: #aaa; margin-bottom: 2rem;">
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #00ff99; position: absolute; left: 0;">✓</span>
+          Beta Supporter badge when social features launch
+        </li>
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #00ff99; position: absolute; left: 0;">✓</span>
+          Early access to new features
+        </li>
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #00ff99; position: absolute; left: 0;">✓</span>
+          Priority support
+        </li>
+
+      </ul>
+      
+      <button class="btn btn-outline-green" style="width: 100%; padding: 1rem; font-size: 1.1em; font-weight: bold;" onclick="selectTier(10)">
+        Choose $10 Tier
+      </button>
+    </div>
+
+    <!-- $50 Tier -->
+    <div class="donation-tier" style="background: linear-gradient(135deg, #111 0%, #1a1a1a 100%); border: 2px solid #00ff99; border-radius: 12px; padding: 2rem; width: 280px; text-align: center; position: relative; transform: scale(1.05);">
+      <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #ffaa00; color: #000; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; font-size: 0.9em;">
+        LIFETIME SUPPORTER
+      </div>
+      
+      <h2 style="color: #ffaa00; font-size: 2.5em; margin: 1rem 0 0.5rem 0;">$50</h2>
+      <p style="color: #ccc; margin-bottom: 1.5rem;">Lifetime Premium Access</p>
+      
+      <ul style="list-style: none; padding: 0; text-align: left; color: #aaa; margin-bottom: 2rem;">
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #ffaa00; position: absolute; left: 0;">✓</span>
+          <strong>Free subscription forever</strong> when officially released
+        </li>
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #ffaa00; position: absolute; left: 0;">✓</span>
+          All Beta Supporter benefits
+        </li>
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #ffaa00; position: absolute; left: 0;">✓</span>
+          Exclusive premium features
+        </li>
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #ffaa00; position: absolute; left: 0;">✓</span>
+          VIP Discord access
+        </li>
+        <li style="margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;">
+          <span style="color: #ffaa00; position: absolute; left: 0;">✓</span>
+          Direct input on features
+        </li>
+      </ul>
+      
+      <button class="btn" style="width: 100%; padding: 1rem; font-size: 1.1em; font-weight: bold; background: #ffaa00; color: #000; border-color: #ffaa00;" onclick="selectTier(50)">
+        Choose $50 Tier
+      </button>
+    </div>
+  </div>
+
+  <!-- Payment Form (Hidden by default) -->
+  <div id="paymentForm" style="display: none; max-width: 500px; margin: 0 auto; background: #111; padding: 2rem; border-radius: 12px; border: 1px solid #333;">
+    <h3 style="color: #fff; margin-bottom: 1.5rem;">Complete Your Donation</h3>
+    
+    <div style="margin-bottom: 1.5rem;">
+      <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Selected Tier:</label>
+      <div id="selectedTier" style="background: #1a1a1a; padding: 1rem; border-radius: 8px; color: #fff; font-weight: bold;"></div>
+    </div>
+
+    <div style="margin-bottom: 1.5rem;">
+      <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Email (for receipt):</label>
+      <input type="email" id="donorEmail" class="styled-input" placeholder="your@email.com" required>
+    </div>
+
+
+
+    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+      <button class="btn" style="flex: 1; padding: 1rem; background: #1a1a1a;" onclick="hidePaymentForm()">
+        Cancel
+      </button>
+      <button class="btn btn-outline-green" style="flex: 1; padding: 1rem;" onclick="processDonation()">
+        Donate with PayPal
+      </button>
+    </div>
+
+    <div style="text-align: center; color: #666; font-size: 0.9em;">
+      Secure payment processed by PayPal
+    </div>
+  </div>
+
+  <!-- FAQ Section -->
+  <div style="margin-top: 4rem; max-width: 800px; margin-left: auto; margin-right: auto;">
+    <h3 style="color: #fff; margin-bottom: 1.5rem; text-align: center;">Frequently Asked Questions</h3>
+    
+    <div style="background: #111; border-radius: 12px; padding: 2rem;">
+      <div style="margin-bottom: 2rem;">
+        <h4 style="color: #00ff99; margin-bottom: 0.5rem;">When will social features be available?</h4>
+        <p style="color: #ccc; margin: 0;">Social features are planned for the next major release. Beta supporters will get early access and special badges.</p>
+      </div>
+      
+      <div style="margin-bottom: 2rem;">
+        <h4 style="color: #00ff99; margin-bottom: 0.5rem;">What does "free subscription forever" mean?</h4>
+        <p style="color: #ccc; margin: 0;">When we officially release premium features, $50 supporters will have lifetime access to all premium features without any recurring fees.</p>
+      </div>
+      
+      <div style="margin-bottom: 2rem;">
+        <h4 style="color: #00ff99; margin-bottom: 0.5rem;">Can I upgrade my tier later?</h4>
+        <p style="color: #ccc; margin: 0;">Yes! You can upgrade from $10 to $50 tier at any time. Contact us and we'll help you with the upgrade process.</p>
+      </div>
+      
+      <div>
+        <h4 style="color: #00ff99; margin-bottom: 0.5rem;">Is my payment secure?</h4>
+        <p style="color: #ccc; margin: 0;">Absolutely. All payments are processed securely through PayPal. We never store your payment information.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedAmount = 0;
+
+function selectTier(amount) {
+  selectedAmount = amount;
+  const tierText = amount === 10 ? 'Beta Supporter ($10)' : 'Lifetime Supporter ($50)';
+  document.getElementById('selectedTier').textContent = tierText;
+  document.getElementById('paymentForm').style.display = 'block';
+  
+  // Scroll to payment form
+  document.getElementById('paymentForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function hidePaymentForm() {
+  document.getElementById('paymentForm').style.display = 'none';
+  selectedAmount = 0;
+}
+
+function processDonation() {
+  const email = document.getElementById('donorEmail').value;
+  
+  if (!email) {
+    alert('Please enter your email address.');
+    return;
+  }
+  
+  // Store donation info in localStorage for tracking
+  const donationInfo = {
+    amount: selectedAmount,
+    email: email,
+    date: new Date().toISOString()
+  };
+  localStorage.setItem('donationInfo', JSON.stringify(donationInfo));
+  
+  // Redirect to PayPal with the selected amount
+  const paypalUrl = selectedAmount === 10 
+    ? 'https://www.paypal.com/donate/?hosted_button_id=YOUR_10_DOLLAR_BUTTON_ID'
+    : 'https://www.paypal.com/donate/?hosted_button_id=YOUR_50_DOLLAR_BUTTON_ID';
+  window.open(paypalUrl, '_blank');
+  
+  // Show thank you message
+  setTimeout(() => {
+    alert('Thank you for your support! You will receive a confirmation email shortly.');
+  }, 1000);
+}
+
+// Pre-fill email if user is logged in
+document.addEventListener('DOMContentLoaded', function() {
+  // You can add logic here to pre-fill email if user is logged in
+  // For now, we'll just focus the email field
+  document.getElementById('donorEmail').focus();
+});
+</script>
+
+<style>
+.donation-tier:hover {
+  transform: translateY(-5px);
+  transition: transform 0.3s ease;
+  box-shadow: 0 10px 25px rgba(0, 255, 153, 0.1);
+}
+
+.donation-tier {
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .donation-tier {
+    width: 100% !important;
+    margin-bottom: 2rem;
+  }
+  
+  .donation-tier:nth-child(2) {
+    transform: none !important;
+  }
+}
+</style>
+{% endblock %} 

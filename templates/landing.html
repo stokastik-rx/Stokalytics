@@ -1,5 +1,68 @@
 {% extends "base.html" %}
 
+{% block topbar %}
+<style>
+.stok-navbar {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  background: rgba(10, 10, 10, 0.97);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 4rem 0.7rem 1.5rem; /* Midpoint right padding */
+  border-bottom: 1.5px solid #222;
+  margin-top: 0.3rem;
+  box-sizing: border-box;
+  overflow-x: visible;
+}
+.stok-navbar .stok-brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  color: #00ff99;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px #00ff9955;
+  text-decoration: none;
+}
+.stok-navbar .stok-nav-btns {
+  display: flex;
+  gap: 1.1rem;
+  margin-right: 0.3rem;
+}
+.stok-navbar .stok-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.5rem 1.4rem;
+  border-radius: 30px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(45deg, #00ff99, #00ccff);
+  color: #101010;
+  box-shadow: 0 2px 12px #00ff9933;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.stok-navbar .stok-btn:hover {
+  background: linear-gradient(45deg, #00ccff, #00ff99);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 18px #00ff9955;
+  color: #000;
+}
+</style>
+<nav class="stok-navbar">
+  <a href="/" class="stok-brand">Stokalytics</a>
+  <div class="stok-nav-btns">
+    <a href="{{ url_for('login') }}" class="stok-btn">Log In</a>
+    <a href="{{ url_for('signup') }}" class="stok-btn">Sign Up</a>
+  </div>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div style="min-height: 100vh; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;">
   

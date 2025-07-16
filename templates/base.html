@@ -14,7 +14,8 @@
     <!-- Optional Favicon -->
     <!-- <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}"> -->
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+    {% block topbar %}{% endblock %}
     <div id="app">
         {% block content %}{% endblock %}
     </div>

@@ -805,3 +805,35 @@ input[type=number]::-webkit-inner-spin-button {
 .styled-input:focus {
   border-color: #66ccff;
 }
+
+/* Textarea styling for feedback modal */
+.styled-input[rows] {
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+}
+
+/* Dashboard-specific scrollbar hiding */
+.dashboard-page html, .dashboard-page body {
+  overflow: hidden !important;
+}
+
+/* Ensure main-content flex column (sidebar parent) is scrollable */
+.dashboard-page .main-content > div[style*='flex-direction: column'] {
+  overflow-y: auto !important;
+  height: 90vh !important;
+}
+
+/* Remove scrollbars from dashboard elements except sidebar */
+.dashboard-page .container, .dashboard-page .main-content, .dashboard-page .dashboard-grid {
+  overflow: visible !important;
+}
+
+/* Donation page styles */
+.donate-page {
+  overflow-y: auto !important;
+}
+
+.donate-page .container {
+  overflow: visible !important;
+}

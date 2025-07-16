@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Admin Dashboard</h1>
+    <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-red">Logout</a>
+  </div>
+
+  <!-- Overall Statistics -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 3rem;">
+    <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
+      <h3 style="color: #00ff99; margin: 0 0 0.5rem 0;">{{ total_users }}</h3>
+      <p style="color: #ccc; margin: 0;">Total Users</p>
+    </div>
+    <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
+      <h3 style="color: #00ccff; margin: 0 0 0.5rem 0;">{{ total_sessions }}</h3>
+      <p style="color: #ccc; margin: 0;">Total Sessions</p>
+    </div>
+    <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
+      <h3 style="color: #ffaa00; margin: 0 0 0.5rem 0;">{{ total_feedback }}</h3>
+      <p style="color: #ccc; margin: 0;">Feedback Submissions</p>
+    </div>
+    <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
+      <h3 style="color: #ff6b6b; margin: 0 0 0.5rem 0;">{{ "%.1f"|format(cpu_percent) }}%</h3>
+      <p style="color: #ccc; margin: 0;">CPU Usage</p>
+    </div>
+    <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
+      <h3 style="color: #4ecdc4; margin: 0 0 0.5rem 0;">{{ "%.1f"|format(memory_percent) }}%</h3>
+      <p style="color: #ccc; margin: 0;">Memory Usage</p>
+    </div>
+    <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
+      <h3 style="color: #45b7d1; margin: 0 0 0.5rem 0;">{{ db_size_mb }} MB</h3>
+      <p style="color: #ccc; margin: 0;">Database Size</p>
+    </div>
+  </div>
+
+  <!-- System Information -->
+  <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; margin-bottom: 3rem;">
+    <h3 style="color: #fff; margin: 0 0 1rem 0;">System Information</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+      <div>
+        <p style="color: #ccc; margin: 0 0 0.5rem 0;"><strong>Memory:</strong> {{ memory_used_gb }} GB / {{ memory_total_gb }} GB</p>
+        <div style="background: #333; height: 8px; border-radius: 4px; overflow: hidden;">
+          <div style="background: #4ecdc4; height: 100%; width: {{ memory_percent }}%;"></div>
+        </div>
+      </div>
+      <div>
+        <p style="color: #ccc; margin: 0 0 0.5rem 0;"><strong>CPU:</strong> {{ "%.1f"|format(cpu_percent) }}%</p>
+        <div style="background: #333; height: 8px; border-radius: 4px; overflow: hidden;">
+          <div style="background: #ff6b6b; height: 100%; width: {{ cpu_percent }}%;"></div>
+        </div>
+      </div>
+      <div>
+        <p style="color: #ccc; margin: 0 0 0.5rem 0;"><strong>Total Storage Used:</strong> {{ total_storage_mb }} MB</p>
+        <p style="color: #ccc; margin: 0;"><strong>Database File:</strong> {{ db_size_mb }} MB</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Statistics Table -->
+  <div style="margin-bottom: 3rem;">
+    <h2 style="color: #fff; margin-bottom: 1rem;">User Statistics</h2>
+    <div style="overflow-x: auto;">
+      <table class="table" style="table-layout: fixed; width: 100%;">
+        <thead>
+          <tr>
+            <th style="width: 10%;">Username</th>
+            <th style="width: 15%;">Email</th>
+            <th style="width: 8%;">Signup Date</th>
+            <th style="width: 8%;">Last Login</th>
+            <th style="width: 6%;">Sessions</th>
+            <th style="width: 8%;">Total Hours</th>
+            <th style="width: 8%;">Total Profit</th>
+            <th style="width: 8%;">Storage Used</th>
+            <th style="width: 20%;">Record Counts</th>
+            <th style="width: 9%;">Donations</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in user_stats %}
+          <tr>
+            <td style="word-wrap: break-word; overflow-wrap: break-word;">{{ user.username }}</td>
+            <td style="word-wrap: break-word; overflow-wrap: break-word; font-size: 0.85em;">{{ user.email }}</td>
+            <td style="font-size: 0.85em;">{{ user.signup_date }}</td>
+            <td style="font-size: 0.85em;">{{ user.last_login }}</td>
+            <td style="text-align: center;">{{ user.session_count }}</td>
+            <td style="text-align: center;">{{ user.total_hours }}h</td>
+            <td style="color: {% if user.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; text-align: center;">
+              ${{ user.total_profit }}
+            </td>
+            <td style="color: #45b7d1; text-align: center;">{{ user.storage_usage_mb }} MB</td>
+            <td>
+              <div style="font-size: 0.75em; color: #ccc; line-height: 1.2;">
+                <div>Sessions: {{ user.record_counts.sessions }}</div>
+                <div>Banks: {{ user.record_counts.banks }}</div>
+                <div>Ledger: {{ user.record_counts.ledger }}</div>
+                <div>Comps: {{ user.record_counts.comps }}</div>
+                <div>Gifts: {{ user.record_counts.gifts }}</div>
+                <div>Locations: {{ user.record_counts.locations }}</div>
+                <div>Notes: {{ user.record_counts.location_notes }}</div>
+                <div>BJ Sessions: {{ user.record_counts.blackjack_sessions }}</div>
+                <div>Feedback: {{ user.record_counts.feedback }}</div>
+              </div>
+            </td>
+            <td style="text-align: center;">${{ user.donation_amount }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Feedback Section -->
+  <div>
+    <h2 style="color: #fff; margin-bottom: 1rem;">Recent Feedback</h2>
+    {% for feedback, user in feedback_list %}
+    <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+        <div>
+          <h4 style="color: #fff; margin: 0 0 0.5rem 0;">{{ feedback.subject }}</h4>
+          <p style="color: #ccc; margin: 0; font-size: 0.9em;">
+            By: {{ user.username }} ({{ user.email }}) | 
+            {{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}
+          </p>
+        </div>
+        <div style="text-align: right;">
+          <span style="background: {% if feedback.feedback_type == 'Bug Report' %}#ff4444{% else %}#00ff99{% endif %}; color: #000; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8em; font-weight: bold;">
+            {{ feedback.feedback_type }}
+          </span>
+          <div style="margin-top: 0.5rem;">
+            <span style="color: #ffaa00; font-weight: bold;">Significance: {{ feedback.significance }}/5</span>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background: #1a1a1a; padding: 1rem; border-radius: 6px; border-left: 4px solid {% if feedback.feedback_type == 'Bug Report' %}#ff4444{% else %}#00ff99{% endif %};">
+        <p style="color: #ccc; margin: 0; white-space: pre-wrap;">{{ feedback.message }}</p>
+      </div>
+    </div>
+    {% endfor %}
+    
+    {% if not feedback_list %}
+    <div style="background: #111; padding: 2rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
+      <p style="color: #666; margin: 0;">No feedback submitted yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.table {
+  font-size: 0.9em;
+}
+
+.table th {
+  background: #1a1a1a;
+  color: #fff;
+  font-weight: bold;
+  padding: 0.75rem;
+}
+
+.table td {
+  padding: 0.75rem;
+  border-color: #333;
+}
+
+.table tbody tr:hover {
+  background: #1f1f1f;
+}
+</style>
+{% endblock %} 

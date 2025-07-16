@@ -114,6 +114,14 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('reminder',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('content', sa.String(length=100), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+        sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 

@@ -65,11 +65,11 @@ def dashboard():
     from logs import SessionRecord, LedSessRecord
     sync_ledsess()  # Always update LedSess before rendering dashboard
 
-    print(f"\n=== DASHBOARD LOADED FOR USER {current_user.id} ===")
+    # print(f"\n=== DASHBOARD LOADED FOR USER {current_user.id} ===")
 
     # === Chart 1: Cumulative Profit (PnL vs Time) ===
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).order_by(SessionRecord.date, SessionRecord.time_in).all()
-    print(f"[dashboard] Found {len(sessions)} sessions for user {current_user.id}")
+    # print(f"[dashboard] Found {len(sessions)} sessions for user {current_user.id}")
     
     cumulative_profit = 0
     cumulative_time = 0
@@ -88,17 +88,20 @@ def dashboard():
             
         cumulative_time += duration
         chart_point_map[round(cumulative_time, 2)] = round(cumulative_profit, 2)
-        print(f"  Session {i+1}: {s.date} {s.type} - Money: ${money_in}→${money_out} (Profit: ${profit}) - Time: {duration:.2f}h - Cumulative: ${cumulative_profit:.2f}")
+        # print(f"  Session {i+1}: {s.date} {s.type} - Money: ${money_in}→${money_out} (Profit: ${profit}) - Time: {duration:.2f}h - Cumulative: ${cumulative_profit:.2f}")
     
     chart_points = [{"x": x, "y": y} for x, y in sorted(chart_point_map.items())]
-    print('[dashboard] Cumulative Profit chart_points:', chart_points)
+    # Ensure chart always starts at (0, 0)
+    if not chart_points or chart_points[0]["x"] != 0:
+        chart_points = [{"x": 0, "y": 0}] + chart_points
+    # print('[dashboard] Cumulative Profit chart_points:', chart_points)
 
     unique_types = sorted(set(s.type for s in sessions if s.type))
-    print(f'[dashboard] Unique venture types: {unique_types}')
+    # print(f'[dashboard] Unique venture types: {unique_types}')
 
     # === Chart 2: Total Bankroll by Date (from LedSess) ===
     ledsess_entries = LedSessRecord.query.filter_by(user_id=current_user.id).order_by(LedSessRecord.date, LedSessRecord.id).all()
-    print(f"[dashboard] Found {len(ledsess_entries)} LedSess entries for user {current_user.id}")
+    # print(f"[dashboard] Found {len(ledsess_entries)} LedSess entries for user {current_user.id}")
     
     cumulative = 0
     date_to_cumulative = {}
@@ -107,12 +110,12 @@ def dashboard():
         cumulative += entry.value or 0
         date_str = entry.date.isoformat()
         date_to_cumulative[date_str] = cumulative
-        print(f"  LedSess: {entry.date} {entry.type} ${entry.value:.2f} → Cumulative: ${cumulative:.2f}")
+        # print(f"  LedSess: {entry.date} {entry.type} ${entry.value:.2f} → Cumulative: ${cumulative:.2f}")
     
     combined_chart_data = [
         {"x": date, "y": round(val, 2)} for date, val in sorted(date_to_cumulative.items())
     ]
-    print('[dashboard] Total Bankroll by Date combined_chart_data:', combined_chart_data)
+    # print('[dashboard] Total Bankroll by Date combined_chart_data:', combined_chart_data)
 
     # === Chart 3: Venture Charts ===
     venture_chart_map = defaultdict(list)
@@ -143,18 +146,91 @@ def dashboard():
             "x": x_val,
             "y": round(venture_cumulative[venture], 2)
         })
-        print(f"  Venture {venture}: x={x_val}, y=${venture_cumulative[venture]:.2f}")
+        # print(f"  Venture {venture}: x={x_val}, y=${venture_cumulative[venture]:.2f}")
     
     venture_chart_data = dict(venture_chart_map)
-    print('[dashboard] Venture chart data:', venture_chart_data)
+    # print('[dashboard] Venture chart data:', venture_chart_data)
 
+    # === All Time Statistics ===
+    total_sessions = len(sessions)
+    total_hours = 0.0
+    total_profit = 0.0
+    best_session = float('-inf')
+    worst_session = float('inf')
+    total_comps = 0.0
+    for s in sessions:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        total_profit += profit
+        total_comps += (s.comps_out or 0)
+        if s.time_in and s.time_out:
+            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            total_hours += duration
+        if profit > best_session:
+            best_session = profit
+        if profit < worst_session:
+            worst_session = profit
+    if total_sessions == 0:
+        best_session = 0.0
+        worst_session = 0.0
+    hourly_rate = total_profit / total_hours if total_hours > 0 else 0.0
+    from logs import CompRecord, GiftRecord
+    comps_realized = 0.0
+    for c in CompRecord.query.filter_by(user_id=current_user.id).all():
+        comps_realized += c.value or 0
+    for g in GiftRecord.query.filter_by(user_id=current_user.id).all():
+        comps_realized += g.value or 0
+    all_time_stats = {
+        'total_hours': round(total_hours, 2),
+        'total_profit': round(total_profit, 2),
+        'hourly_rate': round(hourly_rate, 2),
+        'best_session': round(best_session, 2),
+        'worst_session': round(worst_session, 2),
+        'comps_realized': round(comps_realized, 2)
+    }
+    # --- Personal Bests ---
+    # Longest winning streak (consecutive positive profit sessions)
+    longest_streak = 0
+    current_streak = 0
+    for s in sessions:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        if profit > 0:
+            current_streak += 1
+            if current_streak > longest_streak:
+                longest_streak = current_streak
+        else:
+            current_streak = 0
+    # Most profitable day
+    profit_by_date = defaultdict(float)
+    for s in sessions:
+        if s.date:
+            profit_by_date[s.date] += (s.money_out or 0) - (s.money_in or 0)
+    if profit_by_date:
+        most_profitable_day = max(profit_by_date.items(), key=lambda x: x[1])
+    else:
+        most_profitable_day = (None, 0)
+    # Longest session (hours)
+    longest_session = 0.0
+    for s in sessions:
+        if s.time_in and s.time_out:
+            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            if duration > longest_session:
+                longest_session = duration
+    personal_bests = {
+        'longest_streak': longest_streak,
+        'most_profitable_day': most_profitable_day,
+        'longest_session': round(longest_session, 2)
+    }
+    reminders = []  # Placeholder for reminders, can be filled in the template or by user
     return render_template(
         'dashboard.html',
         chart_data=chart_points,
         unique_types=unique_types,
         combined_chart_data=combined_chart_data,
         venture_chart_data=venture_chart_data,
-        game_preference=current_user.game_preference
+        game_preference=current_user.game_preference,
+        all_time_stats=all_time_stats,
+        personal_bests=personal_bests,
+        reminders=reminders
     )
 
 
@@ -164,6 +240,9 @@ def login():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if user and user.check_password(request.form['password']):
+            # Update last login time
+            user.update_last_login()
+            db.session.commit()
             login_user(user)
             return redirect(url_for('dashboard'))
         return "Invalid credentials"
@@ -1188,6 +1267,210 @@ def update_blackjack_session(bj_id):
 @app.route('/landing-standalone')
 def landing_standalone():
     return render_template('landing-standalone.html')
+
+@app.route('/donate')
+def donate():
+    return render_template('donate.html')
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        print(f"Admin login attempt - Username: '{username}', Password: '{password}'")
+        
+        # Hardcoded admin credentials
+        if username == 'stokastik-rx' and password == 'gamblingondrugs420':
+            from flask import session
+            session['admin_logged_in'] = True
+            print("Admin login successful")
+            return redirect(url_for('admin_dashboard'))
+        else:
+            print("Admin login failed - credentials don't match")
+            return "Invalid admin credentials", 401
+    
+    return render_template('admin_login.html')
+
+@app.route('/admin')
+def admin_dashboard():
+    from flask import session
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    from logs import Feedback, SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord, LocationRecord, LedSessRecord, LocationNote, BlackjackSession, BlackjackSpread, BlackjackGameRule
+    from users import User
+    from sqlalchemy import func, desc
+    import os
+    import psutil
+    
+    # Get all feedback
+    feedback_list = db.session.query(Feedback, User).join(User).order_by(desc(Feedback.created_at)).all()
+    
+    # Get user statistics with storage and CPU usage
+    users = User.query.all()
+    user_stats = []
+    
+    # Get database file size
+    db_size = 0
+    if os.path.exists('instance/uploads.db'):
+        db_size = os.path.getsize('instance/uploads.db')
+    
+    # Get system CPU usage (with fallback for deployment environments)
+    try:
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+    except Exception as e:
+        print(f"System monitoring not available: {e}")
+        cpu_percent = 0.0
+        memory = type('Memory', (), {
+            'percent': 0.0,
+            'used': 0,
+            'total': 1024**3  # 1GB default
+        })()
+    
+    for user in users:
+        # Count sessions
+        session_count = SessionRecord.query.filter_by(user_id=user.id).count()
+        
+        # Calculate total hours
+        total_hours = 0
+        sessions = SessionRecord.query.filter_by(user_id=user.id).all()
+        for session in sessions:
+            if session.time_in and session.time_out:
+                duration = (datetime.combine(session.date, session.time_out) - 
+                           datetime.combine(session.date, session.time_in)).total_seconds() / 3600
+                total_hours += duration
+        
+        # Calculate total profit
+        total_profit = 0
+        for session in sessions:
+            profit = (session.money_out or 0) - (session.money_in or 0)
+            total_profit += profit
+        
+        # Calculate storage usage for this user
+        storage_usage = 0
+        
+        # Count records for this user
+        session_records = SessionRecord.query.filter_by(user_id=user.id).count()
+        bank_records = BankRecord.query.filter_by(user_id=user.id).count()
+        ledger_records = LedgerRecord.query.filter_by(user_id=user.id).count()
+        comp_records = CompRecord.query.filter_by(user_id=user.id).count()
+        gift_records = GiftRecord.query.filter_by(user_id=user.id).count()
+        location_records = LocationRecord.query.filter_by(user_id=user.id).count()
+        ledsess_records = LedSessRecord.query.filter_by(user_id=user.id).count()
+        location_notes = LocationNote.query.filter_by(user_id=user.id).count()
+        blackjack_sessions = BlackjackSession.query.filter_by(user_id=user.id).count()
+        blackjack_spreads = BlackjackSpread.query.filter_by(user_id=user.id).count()
+        blackjack_rules = BlackjackGameRule.query.filter_by(user_id=user.id).count()
+        feedback_records = Feedback.query.filter_by(user_id=user.id).count()
+        
+        # Estimate storage (rough calculation based on average record sizes)
+        storage_usage = (
+            session_records * 200 +      # ~200 bytes per session record
+            bank_records * 50 +          # ~50 bytes per bank record
+            ledger_records * 150 +       # ~150 bytes per ledger record
+            comp_records * 100 +         # ~100 bytes per comp record
+            gift_records * 100 +         # ~100 bytes per gift record
+            location_records * 100 +     # ~100 bytes per location record
+            ledsess_records * 100 +      # ~100 bytes per ledsess record
+            location_notes * 500 +       # ~500 bytes per location note
+            blackjack_sessions * 150 +   # ~150 bytes per blackjack session
+            blackjack_spreads * 50 +     # ~50 bytes per blackjack spread
+            blackjack_rules * 50 +       # ~50 bytes per blackjack rule
+            feedback_records * 300       # ~300 bytes per feedback record
+        )
+        
+        # Get signup and last login dates
+        signup_date = user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown'
+        last_login = user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never'
+        
+        # Donation amount (placeholder - you can add donation tracking later)
+        donation_amount = 0
+        
+        user_stats.append({
+            'username': user.username,
+            'email': user.email,
+            'signup_date': signup_date,
+            'last_login': last_login,
+            'session_count': session_count,
+            'total_hours': round(total_hours, 2),
+            'total_profit': round(total_profit, 2),
+            'donation_amount': donation_amount,
+            'storage_usage': storage_usage,
+            'storage_usage_mb': round(storage_usage / (1024 * 1024), 3),
+            'record_counts': {
+                'sessions': session_records,
+                'banks': bank_records,
+                'ledger': ledger_records,
+                'comps': comp_records,
+                'gifts': gift_records,
+                'locations': location_records,
+                'ledsess': ledsess_records,
+                'location_notes': location_notes,
+                'blackjack_sessions': blackjack_sessions,
+                'blackjack_spreads': blackjack_spreads,
+                'blackjack_rules': blackjack_rules,
+                'feedback': feedback_records
+            }
+        })
+    
+    # Overall statistics
+    total_users = len(users)
+    total_feedback = Feedback.query.count()
+    total_sessions = SessionRecord.query.count()
+    
+    # Calculate total storage usage
+    total_storage = sum(user['storage_usage'] for user in user_stats)
+    total_storage_mb = round(total_storage / (1024 * 1024), 3)
+    
+    return render_template('admin_dashboard.html', 
+                         feedback_list=feedback_list,
+                         user_stats=user_stats,
+                         total_users=total_users,
+                         total_feedback=total_feedback,
+                         total_sessions=total_sessions,
+                         db_size=db_size,
+                         db_size_mb=round(db_size / (1024 * 1024), 3),
+                         total_storage_mb=total_storage_mb,
+                         cpu_percent=cpu_percent,
+                         memory_percent=memory.percent,
+                         memory_used_gb=round(memory.used / (1024**3), 2),
+                         memory_total_gb=round(memory.total / (1024**3), 2))
+
+@app.route('/admin/logout')
+def admin_logout():
+    from flask import session
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('admin_login'))
+
+@app.route('/submit_feedback', methods=['POST'])
+@login_required
+def submit_feedback():
+    try:
+        from logs import Feedback
+        
+        feedback_type = request.form.get('feedback_type')
+        significance = request.form.get('significance')
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        
+        # Save feedback to database
+        feedback = Feedback(
+            user_id=current_user.id,
+            feedback_type=feedback_type,
+            significance=int(significance),
+            subject=subject,
+            message=message
+        )
+        
+        db.session.add(feedback)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Feedback submitted successfully! We\'ll review it soon.'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error submitting feedback: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5555, debug=False)
