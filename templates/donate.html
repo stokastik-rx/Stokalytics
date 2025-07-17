@@ -83,26 +83,24 @@
   </div>
 
   <!-- Payment Form (Hidden by default) -->
-  <div id="paymentForm" style="display: none; max-width: 500px; margin: 0 auto; background: #111; padding: 2rem; border-radius: 12px; border: 1px solid #333;">
-    <h3 style="color: #fff; margin-bottom: 1.5rem;">Complete Your Donation</h3>
+  <div id="paymentForm" style="display: none; max-width: 500px; margin: 0 auto; background: #111; border: 1px solid #333; border-radius: 12px; padding: 2rem; margin-top: 3rem;">
+    <h3 style="color: #fff; margin-bottom: 1.5em;">Complete Your Donation</h3>
     
-    <div style="margin-bottom: 1.5rem;">
-      <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Selected Tier:</label>
-      <div id="selectedTier" style="background: #1a1a1a; padding: 1rem; border-radius: 8px; color: #fff; font-weight: bold;"></div>
+    <div style="margin-bottom: 1.5em;">
+      <label style="display: block; color: #ccc; margin-bottom: 0.5em;">Selected Tier:</label>
+      <div id="selectedTier" style="background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #fff; font-weight: bold; padding: 0.5rem 1rem; font-size: 1.1em;"></div>
     </div>
 
-    <div style="margin-bottom: 1.5rem;">
-      <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Email (for receipt):</label>
+    <div style="margin-bottom: 1.5em;">
+      <label style="display: block; color: #ccc; margin-bottom: 0.5em;">Email (for receipt):</label>
       <input type="email" id="donorEmail" class="styled-input" placeholder="your@email.com" required>
     </div>
 
-
-
     <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-      <button class="btn" style="flex: 1; padding: 1rem; background: #1a1a1a;" onclick="hidePaymentForm()">
+      <button class="btn" style="flex: 1; padding: 1rem; background: #111; color: #fff; border: 1px solid #333; border-radius: 8px; font-size: 1.1em; font-weight: bold;" onclick="hidePaymentForm()">
         Cancel
       </button>
-      <button class="btn btn-outline-green" style="flex: 1; padding: 1rem;" onclick="processDonation()">
+      <button class="btn btn-outline-green" style="flex: 1; padding: 1rem; font-size: 1.1em; font-weight: bold;" onclick="processDonation()">
         Donate with PayPal
       </button>
     </div>
@@ -174,10 +172,9 @@ function processDonation() {
   };
   localStorage.setItem('donationInfo', JSON.stringify(donationInfo));
   
-  // Redirect to PayPal with the selected amount
-  const paypalUrl = selectedAmount === 10 
-    ? 'https://www.paypal.com/donate/?hosted_button_id=YOUR_10_DOLLAR_BUTTON_ID'
-    : 'https://www.paypal.com/donate/?hosted_button_id=YOUR_50_DOLLAR_BUTTON_ID';
+  // Redirect to PayPal with the selected amount and user email
+  const paypalUrl = selectedAmount === 10    ? `https://www.paypal.com/donate/?hosted_button_id=H877BC6B5M36custom=${encodeURIComponent(email)}`
+    : `https://www.paypal.com/donate/?hosted_button_id=EZX8HX4FCBQGW&custom=${encodeURIComponent(email)}`;
   window.open(paypalUrl, '_blank');
   
   // Show thank you message

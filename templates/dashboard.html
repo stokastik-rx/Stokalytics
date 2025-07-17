@@ -38,10 +38,7 @@
           <input type="text" name="type" id="typeInput" placeholder="Type">
           <button type="button" class="lock-btn" data-target="typeInput">🔒</button>
         </div>
-        <div class="input-lock-container">
-          <input type="text" name="stakes" id="stakesInput" placeholder="Stakes">
-          <button type="button" class="lock-btn" data-target="stakesInput">🔒</button>
-        </div>
+        <!-- Stakes input removed as it is now poker-specific -->
 
         <input type="time" name="time_in" placeholder="Time In">
         <input type="time" name="time_out" placeholder="Time Out">
@@ -75,7 +72,7 @@
               {% if type == 'Blackjack' %}
                 <a href="{{ url_for('view_blackjack') }}" style="color: #00ffff; text-decoration: none; font-weight: bold;">Blackjack</a>
               {% elif type == 'Poker' %}
-                <span style="color: #ff66cc; font-weight: bold;">Poker</span>
+                <a href="{{ url_for('view_poker') }}" style="color: #ff66cc; text-decoration: none; font-weight: bold;">Poker</a>
               {% else %}
                 {{ type }}
               {% endif %}

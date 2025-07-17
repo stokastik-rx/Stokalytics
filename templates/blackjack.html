@@ -10,66 +10,63 @@
     <button class="btn" id="manage-gamerules-btn" type="button">Manage Game Rules</button>
   </div>
 
-  <div class="main-content">
-    <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; max-height: 90vh;">
+  <div class="main-content" style="display: flex; gap: 2.5rem; align-items: flex-start;">
+    <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; max-height: 90vh; flex-shrink: 0;">
       <!-- Venture Statistics -->
-      <h3 style="color: #ffffff; font-family: Consolas, monospace;">Venture Statistics</h3>
-      <ul style="list-style: none; padding-left: 0;">
-        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Total Profit/Loss: <span class="{{ 'positive' if bj_stats.total_profit >= 0 else 'negative' }}">${{ '%.2f'|format(bj_stats.total_profit) }}</span></li>
-        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Total Sessions: {{ bj_stats.total_sessions }}</li>
-        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Total Hours: {{ '%.2f'|format(bj_stats.total_hours) }}</li>
-        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Hourly Rate: <span class="{{ 'positive' if bj_stats.total_hours > 0 and bj_stats.total_profit / bj_stats.total_hours >= 0 else 'negative' }}">${{ '%.2f'|format(bj_stats.total_profit / bj_stats.total_hours if bj_stats.total_hours > 0 else 0) }}</span></li>
-        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Best Session: ${{ '%.2f'|format(bj_stats.best_session) }}</li>
-        <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">Worst Session: ${{ '%.2f'|format(bj_stats.worst_session) }}</li>
+      <h3 style="color: #ffffff; font-family: Consolas, monospace; font-size: 0.85rem;">Venture Statistics</h3>
+      <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.82em;">
+        <li style="margin-bottom: 0.3em;">Total Profit/Loss: <span style="color:{% if bj_stats.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(bj_stats.total_profit) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Total Sessions: <span style="color:#00ccff; float:right;">{{ bj_stats.total_sessions }}</span></li>
+        <li style="margin-bottom: 0.3em;">Total Hours: <span style="color:#00ccff; float:right;">{{ '%.2f'|format(bj_stats.total_hours) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Hourly Rate: <span style="color:{% if bj_stats.total_hours > 0 and bj_stats.total_profit / bj_stats.total_hours >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(bj_stats.total_profit / bj_stats.total_hours if bj_stats.total_hours > 0 else 0) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ '%.2f'|format(bj_stats.best_session) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ '%.2f'|format(bj_stats.worst_session) }}</span></li>
       </ul>
       <!-- Variance Analysis visually separated -->
       <div style="margin-top: 2rem; background: #111; border-radius: 10px; padding: 1rem; box-shadow: 0 0 0 1px #222;">
-        <h3 style="color: #ffffff; font-family: Consolas, monospace; margin-top: 0;">Variance Analysis</h3>
-        <div style="color: #aaa;">(Coming soon)</div>
+        <h3 style="color: #ffffff; font-family: Consolas, monospace; margin-top: 0; font-size: 0.85rem;">Variance Analysis</h3>
+        <div style="color: #ccc; font-size: 0.81em;">(Coming soon)</div>
       </div>
     </div>
-    <!-- Main charts and table area -->
-    <div class="dashboard-grid">
-      <div class="chart chart-wide">
-        <div class="chart-label green">Blackjack P/L</div>
-        <canvas id="bjPLChart"></canvas>
+    <div style="flex: 1; min-width: 0;">
+      <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+        <div class="chart chart-wide" style="flex: 1; height: 280px;">
+          <div class="chart-label green">Blackjack P/L</div>
+          <canvas id="bjPLChart"></canvas>
+        </div>
+        <div class="chart chart-wide" style="flex: 1; height: 280px;">
+          <div class="chart-label blue">Blackjack Bankroll</div>
+          <canvas id="bjBankrollChart"></canvas>
+        </div>
       </div>
-      <div class="chart chart-wide">
-        <div class="chart-label blue">Blackjack Bankroll</div>
-        <canvas id="bjBankrollChart"></canvas>
-      </div>
-      <div class="table-wrapper" style="grid-column: span 6; max-height: 420px; overflow-y: auto; margin-top: 0.5rem;">
-        <table class="table">
+      <!-- Space for future content -->
+      <div style="height: 16px;"></div>
+      <div class="table-wrapper" style="max-height: 260px; overflow-y: auto; margin-top: 0.5rem; overflow-x: auto;">
+        <table class="table" style="min-width: 900px;">
           <thead>
             <tr>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:90px;">Date</th>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:90px;">Change (Hourly)</th>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:120px;">Spread</th>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:120px;">System</th>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:120px;">Game Rules</th>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:90px;">Game Speed</th>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:110px;">EV</th>
-              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width:70px;">Variance %tile</th>
+              <th class="date-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; white-space: nowrap; padding-right: 1.5em;">Date</th>
+              <th class="change-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width: auto;">Net Change</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Spread</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">System</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Game Rules</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Penetration</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Game Speed</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 80px;">EV</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 70px;">Variance %tile</th>
             </tr>
           </thead>
           <tbody>
             {% for row in records %}
             <tr data-bj-id="{{ row.id }}" data-spread="{{ row.spread }}" data-gamerules="{{ row.game_rules }}">
-              <td>{{ row.date.strftime('%m/%d/%Y') }}</td>
-              <td class="{{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}">
-                {{ "%.2f"|format(row.change) }}
-                <span style="color:#fff; font-size:0.95em;">(
-                  {% if row.hourly_rate is not none %}
-                    <span class="{{ 'positive' if row.hourly_rate > 0 else 'negative' if row.hourly_rate < 0 else '' }}">${{ '%.2f'|format(row.hourly_rate) }}</span>
-                  {% else %}
-                    --
-                  {% endif %}
-                )</span>
+              <td class="date-col" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1.5em;">{{ row.date.strftime('%m/%d/%Y') }}</td>
+              <td class="change-col {{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}" style="overflow: hidden; text-overflow: ellipsis;">
+                <span class="change-amount">${{ "%.2f"|format(row.change) }}</span>
               </td>
               <td><select class="spread-select styled-select"></select></td>
               <td>
                 <select class="system-select styled-select">
-                  <option value="">--</option>
+                  <option value=""></option>
                   <option value="Hi-Lo" {% if row.system == 'Hi-Lo' %}selected{% endif %}>Hi-Lo</option>
                   <option value="KO" {% if row.system == 'KO' %}selected{% endif %}>KO</option>
                   <option value="Omega II" {% if row.system == 'Omega II' %}selected{% endif %}>Omega II</option>
@@ -77,6 +74,7 @@
                 </select>
               </td>
               <td><select class="gamerule-select styled-select"></select></td>
+              <td><input type="number" class="penetration-input styled-input" min="0" max="100" maxlength="3" value="{{ row.penetration if row.penetration else 75 }}"></td>
               <td><input type="number" class="game-speed-input styled-input" min="0" max="999" maxlength="3" value="{{ row.game_speed if row.game_speed else 100 }}"></td>
               <td class="ev-cell">--</td>
               <td class="variance-cell">--</td>
@@ -212,7 +210,7 @@ function populateAllDropdowns() {
     document.querySelectorAll('.spread-select').forEach(function(sel, idx) {
       const row = sel.closest('tr');
       const val = row.getAttribute('data-spread') || '';
-      sel.innerHTML = '<option value="">--</option>' + spreads.map(s => `<option value="${s.value}">${s.value}</option>`).join('');
+      sel.innerHTML = '<option value=""></option>' + spreads.map(s => `<option value="${s.value}">${s.value}</option>`).join('');
       if (val) sel.value = val;
     });
   });
@@ -220,7 +218,7 @@ function populateAllDropdowns() {
     document.querySelectorAll('.gamerule-select').forEach(function(sel, idx) {
       const row = sel.closest('tr');
       const val = row.getAttribute('data-gamerules') || '';
-      sel.innerHTML = '<option value="">--</option>' + rules.map(r => `<option value="${r.value}">${r.value}</option>`).join('');
+      sel.innerHTML = '<option value=""></option>' + rules.map(r => `<option value="${r.value}">${r.value}</option>`).join('');
       if (val) sel.value = val;
     });
   });
@@ -265,10 +263,10 @@ const bjPLChart = new Chart(document.getElementById('bjPLChart').getContext('2d'
       data: bjChartData && bjChartData.length > 0 ? bjChartData : [{ x: 0, y: 0 }],
       parsing: false,
       borderColor: '#00ff99',
-      backgroundColor: '#00ff9966',
-      tension: 0.3,
-      fill: false,
-      pointRadius: 3
+      backgroundColor: 'rgba(0, 255, 153, 0.1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.1
     }]
   },
   options: {
@@ -328,11 +326,11 @@ const bjBankrollChart = new Chart(document.getElementById('bjBankrollChart').get
     datasets: [{
       label: '',
       data: bjBankrollData && bjBankrollData.length > 0 ? [{ x: bjBankrollData[0].x, y: 0 }, ...bjBankrollData] : [{ x: new Date().toISOString().split('T')[0], y: 0 }],
-      borderColor: '#66ccff',
-      backgroundColor: '#66ccff66',
-      tension: 0.3,
-      fill: false,
-      pointRadius: 3
+      borderColor: '#00ccff',
+      backgroundColor: 'rgba(0, 204, 255, 0.1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.1
     }]
   },
   options: {
@@ -370,5 +368,60 @@ const bjBankrollChart = new Chart(document.getElementById('bjBankrollChart').get
     }
   }
 });
+</script>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .date-col {
+    text-align: left;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 1rem;
+  }
+  .change-col {
+    width: auto;
+    text-align: left;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 1.2rem;
+    transition: font-size 0.2s;
+    white-space: nowrap;
+  }
+  @media (max-width: 900px) {
+    .date-col { font-size: 0.95rem; }
+    .change-col { font-size: 1rem; }
+  }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function fitChangeFont() {
+  document.querySelectorAll('.change-col').forEach(function(cell) {
+    let span = cell.querySelector('.change-amount');
+    if (!span) return;
+    let cellWidth = cell.offsetWidth;
+    let text = span.textContent;
+    let baseFont = 1.2; // rem
+    let minFont = 0.8; // rem
+    let maxFont = 1.4; // rem
+    let test = document.createElement('span');
+    test.style.visibility = 'hidden';
+    test.style.position = 'absolute';
+    test.style.whiteSpace = 'nowrap';
+    test.style.fontFamily = 'JetBrains Mono, Consolas, monospace';
+    document.body.appendChild(test);
+    let font = maxFont;
+    while (font >= minFont) {
+      test.style.fontSize = font + 'rem';
+      test.textContent = text;
+      if (test.offsetWidth <= cellWidth - 16) break;
+      font -= 0.05;
+    }
+    span.style.fontSize = font + 'rem';
+    document.body.removeChild(test);
+  });
+}
+window.addEventListener('resize', fitChangeFont);
+document.addEventListener('DOMContentLoaded', fitChangeFont);
 </script>
 {% endblock %}

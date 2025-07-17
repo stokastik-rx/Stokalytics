@@ -139,3 +139,17 @@ class Feedback(db.Model):
     # Relationship to user
     user = db.relationship('User', backref=db.backref('feedback', lazy=True))
 
+
+class DonationRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False) # Donation amount
+    tier = db.Column(db.String(50))  # $10, $50.
+    paypal_transaction_id = db.Column(db.String(10), unique=True)  # PayPal transaction ID
+    paypal_email = db.Column(db.String(120))  # Donor's PayPal email
+    status = db.Column(db.String(20), default='completed')  # completed, pending, failed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship to user
+    user = db.relationship('User', backref=db.backref('donations', lazy=True))
+

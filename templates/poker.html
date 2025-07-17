@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <h1>Poker</h1>
+  <div class="button-row">
+    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+    <a href="{{ url_for('view_logs') }}?type=Poker" class="btn">Poker Logs</a>
+  </div>
+
+  <div class="main-content" style="display: flex; gap: 2.5rem; align-items: flex-start;">
+    <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; max-height: 90vh; flex-shrink: 0;">
+      <!-- Venture Statistics -->
+      <h3 style="color: #ffffff; font-family: Consolas, monospace; font-size: 0.85rem;">Venture Statistics</h3>
+      <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.82em;">
+        <li style="margin-bottom: 0.3em;">Total Profit/Loss: <span style="color:{% if poker_stats.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(poker_stats.total_profit) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Total Sessions: <span style="color:#00ccff; float:right;">{{ poker_stats.total_sessions }}</span></li>
+        <li style="margin-bottom: 0.3em;">Total Hours: <span style="color:#00ccff; float:right;">{{ '%.2f'|format(poker_stats.total_hours) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Hourly Rate: <span style="color:{% if poker_stats.total_hours > 0 and poker_stats.total_profit / poker_stats.total_hours >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(poker_stats.total_profit / poker_stats.total_hours if poker_stats.total_hours > 0 else 0) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ '%.2f'|format(poker_stats.best_session) }}</span></li>
+        <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ '%.2f'|format(poker_stats.worst_session) }}</span></li>
+      </ul>
+      <!-- Variance Analysis visually separated -->
+      <div style="margin-top: 2rem; background: #111; border-radius: 10px; padding: 1rem; box-shadow: 0 0 0 1px #222;">
+        <h3 style="color: #ffffff; font-family: Consolas, monospace; margin-top: 0; font-size: 0.85rem;">Variance Analysis</h3>
+        <div style="color: #ccc; font-size: 0.81em;">(Coming soon)</div>
+      </div>
+    </div>
+    <div style="flex: 1; min-width: 0;">
+      <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+        <div class="chart chart-wide" style="flex: 1; height: 280px;">
+          <div class="chart-label green">Poker P/L</div>
+          <canvas id="pokerPLChart"></canvas>
+        </div>
+        <div class="chart chart-wide" style="flex: 1; height: 280px;">
+          <div class="chart-label blue">Poker Bankroll</div>
+          <canvas id="pokerBankrollChart"></canvas>
+        </div>
+      </div>
+      <!-- Space for future content -->
+      <div style="height: 16px;"></div>
+      <div class="table-wrapper" style="max-height: 260px; overflow-y: auto; margin-top: 0.5rem; overflow-x: auto;">
+        <table class="table" style="min-width: 900px;">
+          <thead>
+            <tr>
+              <th class="date-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; white-space: nowrap; padding-right: 1.5em;">Date</th>
+              <th class="change-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width: auto;">Net Change</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Stakes</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Softness</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Focus</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Game Speed</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">BB/hr</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">BB/100</th>
+              <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Swing Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in records %}
+            <tr data-poker-id="{{ row.id }}" data-stakes="{{ row.stakes }}">
+              <td class="date-col" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1.5em;">{{ row.date.strftime('%m/%d/%Y') }}</td>
+              <td class="change-col {{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}" style="overflow: hidden; text-overflow: ellipsis;">
+                <span class="change-amount">${{ "%.2f"|format(row.change) }}</span>
+              </td>
+              <td><select class="stakes-select styled-select"></select></td>
+              <td>
+                <select class="softness-select styled-select">
+                  <option value=""></option>
+                  <option value="1" {% if row.softness == 1 %}selected{% endif %}>1 - Soft</option>
+                  <option value="2" {% if row.softness == 2 %}selected{% endif %}>2</option>
+                  <option value="3" {% if row.softness == 3 %}selected{% endif %}>3</option>
+                  <option value="4" {% if row.softness == 4 %}selected{% endif %}>4</option>
+                  <option value="5" {% if row.softness == 5 %}selected{% endif %}>5 - Sweaty</option>
+                </select>
+              </td>
+              <td>
+                <select class="focus-select styled-select">
+                  <option value=""></option>
+                  <option value="1" {% if row.focus == 1 %}selected{% endif %}>1 - Tilted</option>
+                  <option value="2" {% if row.focus == 2 %}selected{% endif %}>2</option>
+                  <option value="3" {% if row.focus == 3 %}selected{% endif %}>3 - Average</option>
+                  <option value="4" {% if row.focus == 4 %}selected{% endif %}>4</option>
+                  <option value="5" {% if row.focus == 5 %}selected{% endif %}>5 - Locked In</option>
+                </select>
+              </td>
+              <td><input type="number" class="game-speed-input styled-input" min="0" max="999" maxlength="3" value="{{ row.game_speed if row.game_speed else 30 }}"></td>
+              <td class="bbhr-cell">
+                {% if row.duration_hours and row.stakes and row.stakes|float > 0 %}
+                  {{ '%.2f'|format(row.change / (row.stakes|float) / row.duration_hours) }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td class="bb100-cell">
+                {% if row.stakes and row.stakes|float > 0 %}
+                  {{ '%.2f'|format(row.change / (row.stakes|float) * 100) }}
+                {% else %}
+                  --
+                {% endif %}
+              </td>
+              <td class="swing-score-cell">--</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div> <!-- end .main-content -->
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script>
+// Poker P/L Chart
+const pokerPLCtx = document.getElementById('pokerPLChart').getContext('2d');
+new Chart(pokerPLCtx, {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: '',
+      data: {{ poker_chart | tojson }},
+      borderColor: '#00ff99',
+      backgroundColor: 'rgba(0, 255, 153, 0.1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.1
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        titleFont: {
+          family: '"JetBrains Mono", monospace',
+          size: 12,
+          weight: '600'
+        },
+        bodyFont: {
+          family: '"JetBrains Mono", monospace',
+          size: 12,
+          weight: '400'
+        },
+        callbacks: {
+          label: function (context) {
+            return `$${context.parsed.y.toLocaleString()}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        title: {
+          display: true,
+          text: 'Hours',
+          color: '#aaa',
+          font: { family: '"JetBrains Mono", monospace', size: 11 }
+        },
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 }
+        },
+        grid: { color: '#333' }
+      },
+      y: {
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 },
+          callback: function (value) {
+            return `$${value.toLocaleString()}`;
+          }
+        },
+        grid: { color: '#333' }
+      }
+    }
+  }
+});
+
+// Poker Bankroll Chart
+const pokerBankrollCtx = document.getElementById('pokerBankrollChart').getContext('2d');
+new Chart(pokerBankrollCtx, {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: '',
+      data: {{ poker_bankroll | tojson }},
+      borderColor: '#00ccff',
+      backgroundColor: 'rgba(0, 204, 255, 0.1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.1
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            return `$${context.parsed.y.toLocaleString()}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'day' },
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 }
+        },
+        grid: { color: '#333' }
+      },
+      y: {
+        ticks: {
+          color: '#ffffff',
+          font: { family: '"JetBrains Mono", monospace', size: 11 },
+          callback: function (value) {
+            return `$${value.toLocaleString()}`;
+          }
+        },
+        grid: { color: '#333' }
+      }
+    }
+  }
+});
+
+// --- API integration for Stakes (like Spreads in Blackjack) ---
+function fetchStakes(callback) {
+  fetch('/api/poker_stakes').then(r => r.json()).then(data => {
+    if (callback) callback(data);
+    const list = document.getElementById('stakes-list');
+    if (list) {
+      list.innerHTML = '';
+      data.forEach(stake => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.style.justifyContent = 'space-between';
+        li.style.marginBottom = '0.3em';
+        li.innerHTML = `<span>${stake.value}</span>`;
+        const del = document.createElement('button');
+        del.textContent = 'Delete';
+        del.className = 'btn btn-outline-red';
+        del.onclick = () => {
+          fetch(`/api/poker_stakes/${stake.id}`, {method: 'DELETE'}).then(() => fetchStakes());
+        };
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    }
+  });
+}
+function populateStakesDropdowns() {
+  fetchStakes(function(stakes) {
+    document.querySelectorAll('.stakes-select').forEach(function(sel, idx) {
+      const row = sel.closest('tr');
+      const val = row.getAttribute('data-stakes') || '';
+      sel.innerHTML = '<option value=""></option>' + stakes.map(s => `<option value="${s.value}">${s.value}</option>`).join('');
+      if (val) sel.value = val;
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', populateStakesDropdowns);
+</script>
+{% endblock %} 

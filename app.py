@@ -13,6 +13,7 @@ from logs import SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord
 from logs import LocationNote  # add LocationNote import
 from logs import BlackjackSpread, BlackjackGameRule
 from logs import BlackjackSession
+from logs import DonationRecord  # add DonationRecord import
 
 # --- Helper: Generate random HEX color ---
 def random_color():
@@ -726,6 +727,93 @@ def edit_ledger_entry(ledger_id):
 
 
 
+@app.route('/poker')
+@login_required
+def view_poker():
+    # Get all poker sessions for this user
+    sessions = (
+        db.session.query(SessionRecord)
+        .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Poker')
+        .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
+        .all()
+    )
+    # Prepare data for template
+    records = []
+    total_sessions = 0
+    total_hours = 0.0
+    total_profit = 0.0
+    best_session = float('-inf')
+    worst_session = float('inf')
+    for s in sessions:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        # Calculate duration in hours
+        if s.time_in and s.time_out:
+            duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            if duration_hours > 0:
+                hourly_rate = profit / duration_hours
+            else:
+                hourly_rate = None
+        else:
+            duration_hours = None
+            hourly_rate = None
+        records.append({
+            'id': s.id,
+            'date': s.date,
+            'change': profit,
+            'source': 'session',
+            'duration_hours': duration_hours,
+            'hourly_rate': hourly_rate
+        })
+        total_sessions += 1
+        if s.time_in and s.time_out:
+            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            total_hours += duration
+        if profit > best_session:
+            best_session = profit
+        if profit < worst_session:
+            worst_session = profit
+        total_profit += profit
+    if total_sessions == 0:
+        best_session = 0.0
+        worst_session = 0.0
+    # Poker P/L chart (cumulative profit over time)
+    # --- FIX: plot chart in chronological order ---
+    sessions_chrono = list(reversed(sessions))
+    chart_points = []
+    cumulative = 0
+    hours = 0
+    for s in sessions_chrono:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        cumulative += profit
+        if s.time_in and s.time_out:
+            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            hours += duration
+        chart_points.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
+    # Ensure chart always starts at x=0
+    if not chart_points or chart_points[0]['x'] != 0:
+        chart_points = [{'x': 0, 'y': 0}] + chart_points
+    # Poker Bankroll chart (from ledger and sessions)
+    ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Poker').order_by(LedgerRecord.date).all()
+    combined = []
+    for s in sessions_chrono:
+        combined.append({'date': s.date, 'change': (s.money_out or 0) - (s.money_in or 0)})
+    for l in ledger_rows:
+        combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
+    combined.sort(key=lambda x: x['date'])
+    bankroll_points = []
+    bankroll = 0
+    for item in combined:
+        bankroll += item['change']
+        bankroll_points.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
+    poker_stats = {
+        'total_sessions': total_sessions,
+        'total_hours': total_hours,
+        'total_profit': total_profit,
+        'best_session': best_session,
+        'worst_session': worst_session
+    }
+    return render_template('poker.html', records=records, poker_chart=chart_points, poker_bankroll=bankroll_points, poker_stats=poker_stats)
+
 @app.route('/blackjack')
 @login_required
 def view_blackjack():
@@ -1272,6 +1360,80 @@ def landing_standalone():
 def donate():
     return render_template('donate.html')
 
+@app.route('/paypal-ipn', methods=['POST'])
+def paypal_ipn():
+    """Instant Payment Notification endpoint"""
+    import urllib.parse
+    import requests
+    
+    # Get the raw POST data
+    raw_data = request.get_data()
+    
+    # Verify the IPN with PayPal
+    verification_url = 'https://ipnpb.paypal.com/cgi-bin/webscr' if app.config.get('DEBUG', False) == False else 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'   
+    # Add 'cmd=_notify-validate' to the beginning of the data
+    verification_data = 'cmd=_notify-validate&' + raw_data.decode('utf-8')
+    try:
+        # Send verification request to PayPal
+        response = requests.post(verification_url, data=verification_data, timeout=30)
+        response.raise_for_status()
+        
+        if response.text == 'VERIFIED':
+            # IPN is verified, process the payment
+            form_data = request.form
+            
+            # Extract payment information
+            payment_status = form_data.get('payment_status')
+            txn_id = form_data.get('txn_id')
+            mc_gross = form_data.get('mc_gross')
+            custom = form_data.get('custom')  # This will contain the user's email
+            payer_email = form_data.get('payer_email')
+            
+            # Only process completed payments
+            if payment_status == 'Completed':
+                # Try to find user by email (from custom field)
+                user = None
+                if custom:
+                    user = User.query.filter_by(email=custom).first()
+                
+                # If no user found by custom field, try payer_email
+                if not user and payer_email:
+                    user = User.query.filter_by(email=payer_email).first()
+                
+                if user:
+                    # Check if this transaction has already been processed
+                    existing_donation = DonationRecord.query.filter_by(paypal_transaction_id=txn_id).first()
+                    
+                    if not existing_donation:
+                        # Determine tier based on amount
+                        tier = '$10' if float(mc_gross) == 10 else '$50' if float(mc_gross) == 50 else 'Other'
+                        # Create donation record
+                        donation = DonationRecord(
+                            user_id=user.id,
+                            amount=float(mc_gross),
+                            tier=tier,
+                            paypal_transaction_id=txn_id,
+                            paypal_email=payer_email,
+                            status='completed'
+                        )
+                        
+                        db.session.add(donation)
+                        db.session.commit()
+                        
+                        print(f"Donation recorded: User {user.username} donated ${mc_gross} (Tier: {tier})")
+                    else:
+                        print(f"Donation already processed: Transaction {txn_id}")
+                else:
+                    print(f"No user found for donation: custom={custom}, payer_email={payer_email}")
+            
+            return 'OK', 200
+        else:
+            print(f"PayPal IPN verification failed: {response.text}")
+            return 'VERIFICATION_FAILED', 400       
+    except Exception as e:
+        print(f"PayPal IPN error: {e}")
+        return 'ERROR', 500
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -1385,8 +1547,9 @@ def admin_dashboard():
         signup_date = user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown'
         last_login = user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never'
         
-        # Donation amount (placeholder - you can add donation tracking later)
-        donation_amount = 0
+        # Calculate total donations for this user
+        donations = DonationRecord.query.filter_by(user_id=user.id, status='completed').all()
+        donation_amount = sum(donation.amount for donation in donations)
         
         user_stats.append({
             'username': user.username,

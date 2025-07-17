@@ -109,7 +109,7 @@
   </div>
 
   <!-- Game Types Section -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem; width: 100%; max-width: 900px;">
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-bottom: 3rem; width: 100%; max-width: 900px;">
     
     <!-- Blackjack Card -->
     <div style="background: #111; border: 2px solid #00ffff; border-radius: 15px; padding: 2rem; text-align: center; transition: transform 0.3s ease, box-shadow 0 0 30px rgba(0, 255, 255, 0.1);" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0, 255, 255, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
@@ -121,6 +121,19 @@
         <li style="margin-bottom: 0.5rem;">✓ Game rules & speed monitoring</li>
         <li style="margin-bottom: 0.5rem;">✓ Hourly rate calculations</li>
         <li style="margin-bottom: 0.5rem;">✓ Variance analysis</li>
+      </ul>
+    </div>
+
+    <!-- Comps Card -->
+    <div style="background: #111; border: 2px solid #ffcc00; border-radius: 15px; padding: 2rem; text-align: center; transition: transform 0.3s ease, box-shadow 0 0 30px rgba(255, 204, 0, 0.1);" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(255, 204, 0, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">🎁</div>
+      <h3 style="color: #ffcc00; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem;">Comps</h3>
+      <ul style="text-align: left; color: #ccc; list-style: none; padding: 0;">
+        <li style="margin-bottom: 0.5rem;">✓ Track comps and rewards</li>
+        <li style="margin-bottom: 0.5rem;">✓ Analyze comp value</li>
+        <li style="margin-bottom: 0.5rem;">✓ Monitor promotional play</li>
+        <li style="margin-bottom: 0.5rem;">✓ Optimize comp strategies</li>
+        <li style="margin-bottom: 0.5rem;">✓ Coming soon!</li>
       </ul>
     </div>
 
@@ -137,6 +150,15 @@
       </ul>
     </div>
 
+  </div>
+
+  <!-- Subtle Coming Soon Note -->
+  <div style="text-align:center; margin-top:-1.2rem; margin-bottom:2.5rem;">
+    <span style="color:#888; font-size:0.98rem; font-style:italic; letter-spacing:0.01em;">
+      <span style="opacity:0.85;">
+        Trading, Sports Betting, and Tournaments are still in development—only <span style='color:#ff66cc;'>Poker</span>, <span style='color:#00ffff;'>Blackjack</span>, and <span style='color:#ffcc00;'>Comps</span> are currently available.
+      </span>
+    </span>
   </div>
 
   <!-- Features Section -->
@@ -162,6 +184,16 @@
         <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎁</div>
         <h4 style="color: #fff; margin-bottom: 0.5rem;">Comps Tracking</h4>
         <p style="color: #aaa; font-size: 0.9rem;">Log and analyze comps, rewards, and promotional play</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📥</div>
+        <h4 style="color: #fff; margin-bottom: 0.5rem;">Session Import & Bulk Upload</h4>
+        <p style="color: #aaa; font-size: 0.9rem;">Easily import session data from spreadsheets or other sources for fast, accurate record-keeping.</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✏️</div>
+        <h4 style="color: #fff; margin-bottom: 0.5rem;">Editable Logs & In-Place Analytics</h4>
+        <p style="color: #aaa; font-size: 0.9rem;">Instantly edit session details and view real-time analytics directly from your logs table.</p>
       </div>
     </div>
   </div>
@@ -279,7 +311,8 @@ const slotPhrases = [
   {text: "blackjack", color: "#00ff99"},
   {text: "trading", color: "#00bfff"},
   {text: "tournaments", color: "#ffaa33"},
-  {text: "sportsbetting", color: "#ff6b35"}
+  {text: "sportsbetting", color: "#ff6b35"},
+  {text: "comps", color: "#ffcc00"}
 ];
 let slot1 = 0, slot2 = 1, slot3 = 2;
 function getSlot(idx, offset) {

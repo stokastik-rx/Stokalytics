@@ -31,8 +31,12 @@
           <tr>
             <th style="width: 80px;">Date</th>
             <th style="width: 140px;">Location</th>
+            {% if not session_type or (session_type != 'Blackjack' and session_type != 'Poker') %}
             <th style="width: 80px;">Type</th>
+            {% endif %}
+            {% if session_type == 'Poker' %}
             <th style="width: 80px;">Stakes</th>
+            {% endif %}
             <th style="width: 60px;">Time In</th>
             <th style="width: 60px;">Time Out</th>
             <th style="width: 80px;">$ In</th>
@@ -57,12 +61,16 @@
             <td style="white-space: nowrap; vertical-align: middle; border-left: 3px solid {{ location_colors.get(session.location, '#333') }}; color: {{ location_colors.get(session.location, '#aaa') }}99; font-weight: 500; background: rgba(0,0,0,0.1);" data-location-cell="{{ session.location }}">
               {{ session.location or '—' }}
             </td>
+            {% if not session_type or (session_type != 'Blackjack' and session_type != 'Poker') %}
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ session.type or '—' }}
             </td>
+            {% endif %}
+            {% if session_type == 'Poker' %}
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ session.stakes or '—' }}
             </td>
+            {% endif %}
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ session.time_in.strftime('%I:%M %p') if session.time_in else '—' }}
             </td>
@@ -158,7 +166,9 @@
               <th style="width: 100px;">Date</th>
               <th style="width: 150px;">Location</th>
               <th style="width: 100px;">Type</th>
+              {% if session_type == 'Poker' %}
               <th style="width: 100px;">Stakes</th>
+              {% endif %}
               <th style="width: 90px;">Time In</th>
               <th style="width: 90px;">Time Out</th>
               <th style="width: 70px;">$ In</th>
@@ -188,17 +198,19 @@
 
               <input type="hidden" name="id_{{ session.id }}" value="{{ session.id }}">
 
-              {% for field in ['date','location','type','stakes','time_in','time_out','money_in','money_out','comps_in','comps_out','tips'] %}
-              <td>
-                <input
-                  type="{% if field == 'date' %}date{% elif 'time' in field %}time{% elif field in ['money_in','money_out','comps_in','comps_out','tips'] %}number{% else %}text{% endif %}"
-                  {% if 'time' in field %}step="60"{% elif field in ['money_in','money_out','comps_in','comps_out','tips'] %}step="0.01"{% endif %}
-                  name="{{ field }}_{{ session.id }}"
-                  value="{% if field in ['money_in','money_out','comps_in','comps_out','tips'] %}{{ '%.2f'|format(session[field] or 0) }}{% elif field == 'date' and session[field] %}{{ session[field].strftime('%Y-%m-%d') }}{% elif 'time' in field and session[field] %}{{ session[field].strftime('%H:%M') }}{% else %}{{ session[field] if session[field] is not none else '' }}{% endif %}"
-                  class="modal-input"
-                >
-              </td>
-              {% endfor %}
+              <td><input type="date" name="date_{{ session.id }}" value="{{ session.date.strftime('%Y-%m-%d') if session.date else '' }}" class="modal-input"></td>
+              <td><input type="text" name="location_{{ session.id }}" value="{{ session.location or '' }}" class="modal-input"></td>
+              <td><input type="text" name="type_{{ session.id }}" value="{{ session.type or '' }}" class="modal-input"></td>
+              {% if session_type == 'Poker' %}
+              <td><input type="text" name="stakes_{{ session.id }}" value="{{ session.stakes or '' }}" class="modal-input"></td>
+              {% endif %}
+              <td><input type="time" name="time_in_{{ session.id }}" value="{{ session.time_in.strftime('%H:%M') if session.time_in else '' }}" class="modal-input"></td>
+              <td><input type="time" name="time_out_{{ session.id }}" value="{{ session.time_out.strftime('%H:%M') if session.time_out else '' }}" class="modal-input"></td>
+              <td><input type="number" step="0.01" name="money_in_{{ session.id }}" value="{{ '%.2f'|format(session.money_in or 0) }}" class="modal-input"></td>
+              <td><input type="number" step="0.01" name="money_out_{{ session.id }}" value="{{ '%.2f'|format(session.money_out or 0) }}" class="modal-input"></td>
+              <td><input type="number" step="0.01" name="comps_in_{{ session.id }}" value="{{ '%.2f'|format(session.comps_in or 0) }}" class="modal-input"></td>
+              <td><input type="number" step="0.01" name="comps_out_{{ session.id }}" value="{{ '%.2f'|format(session.comps_out or 0) }}" class="modal-input"></td>
+              <td><input type="number" step="0.01" name="tips_{{ session.id }}" value="{{ '%.2f'|format(session.tips or 0) }}" class="modal-input"></td>
             </tr>
             {% endfor %}
           </tbody>
