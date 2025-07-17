@@ -6,6 +6,7 @@ from datetime import datetime, time, date
 import pandas as pd
 from collections import defaultdict
 import random
+import os
 
 # --- Shared DB instance ---
 from users import db, User
@@ -21,8 +22,19 @@ def random_color():
     return "#" + ''.join(random.choices('0123456789ABCDEF', k=6))
 
 # --- Flask App Setup ---
+# Ensure 'instance' directory exists for local development
+if not os.path.exists('instance'):
+    os.makedirs('instance')
+# Determine DB path based on environment
+if os.path.exists('/data'):
+    db_path = 'sqlite:////data/uploads.db'
+else:
+    abs_db_path = os.path.abspath('instance/uploads.db')
+    db_path = f'sqlite:///{abs_db_path}'
+print("Using DB path:", db_path)
+
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uploads.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app.jinja_env.globals['getattr'] = getattr  # useful for dynamic rendering
