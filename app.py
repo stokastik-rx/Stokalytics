@@ -1564,6 +1564,7 @@ def admin_dashboard():
         donation_amount = sum(donation.amount for donation in donations)
         
         user_stats.append({
+            'id': user.id,
             'username': user.username,
             'email': user.email,
             'signup_date': signup_date,
@@ -1618,6 +1619,34 @@ def admin_logout():
     from flask import session
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
+
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+def admin_delete_user(user_id):
+    from flask import session
+    if not session.get('admin_logged_in'):
+        return "Unauthorized", 403
+    # Delete all related records for this user
+    from logs import SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord, LocationRecord, LedSessRecord, LocationNote, BlackjackSession, BlackjackSpread, BlackjackGameRule, Feedback
+    from users import User
+    # Delete child records first to avoid foreign key issues
+    SessionRecord.query.filter_by(user_id=user_id).delete()
+    BankRecord.query.filter_by(user_id=user_id).delete()
+    LedgerRecord.query.filter_by(user_id=user_id).delete()
+    CompRecord.query.filter_by(user_id=user_id).delete()
+    GiftRecord.query.filter_by(user_id=user_id).delete()
+    LocationRecord.query.filter_by(user_id=user_id).delete()
+    LedSessRecord.query.filter_by(user_id=user_id).delete()
+    LocationNote.query.filter_by(user_id=user_id).delete()
+    BlackjackSession.query.filter_by(user_id=user_id).delete()
+    BlackjackSpread.query.filter_by(user_id=user_id).delete()
+    BlackjackGameRule.query.filter_by(user_id=user_id).delete()
+    Feedback.query.filter_by(user_id=user_id).delete()
+    # Finally, delete the user
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+    db.session.commit()
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/submit_feedback', methods=['POST'])
 @login_required
