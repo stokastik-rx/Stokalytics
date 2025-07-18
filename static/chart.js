@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const dashboardCanvas = document.getElementById('profitChart');
   if (dashboardCanvas && typeof chartData !== 'undefined') {
     const ctx = dashboardCanvas.getContext('2d');
+    // Calculate min/max for x
+    const xVals = chartData.map(d => d.x);
+    const xMin = Math.min(...xVals);
+    const xMax = Math.max(...xVals);
 
     new Chart(ctx, {
       type: 'line',
@@ -58,10 +62,11 @@ document.addEventListener('DOMContentLoaded', function () {
         scales: {
           x: {
             type: 'linear',
+            min: xMin,
+            max: xMax,
             title: {
               display: true,
               text: 'Hours',
-             
               color: '#aaa',
               font: { family: '"JetBrains Mono", monospace', size: 11 }
             },
@@ -96,15 +101,17 @@ document.addEventListener('DOMContentLoaded', function () {
   const combinedCanvas = document.getElementById('combinedBankrollChart');
   if (combinedCanvas && typeof combinedBankrollData !== 'undefined') {
     const ctx = combinedCanvas.getContext('2d');
-    
-    // Safe handling of combinedBankrollData
     let chartData = [];
     if (combinedBankrollData && combinedBankrollData.length > 0) {
       chartData = [{ x: combinedBankrollData[0].x, y: 0 }, ...combinedBankrollData];
     } else {
       chartData = [{ x: new Date().toISOString().split('T')[0], y: 0 }];
     }
-    
+    // Calculate min/max for x (dates)
+    const xVals = chartData.map(d => new Date(d.x).getTime());
+    const xMin = Math.min(...xVals);
+    const xMax = Math.max(...xVals);
+
     new Chart(ctx, {
       type: 'line',
       data: {
@@ -133,6 +140,8 @@ document.addEventListener('DOMContentLoaded', function () {
         scales: {
           x: {
             type: 'time',
+            min: new Date(xMin),
+            max: new Date(xMax),
             time: { unit: 'day' },
             ticks: {
               color: '#ffffff',
@@ -194,6 +203,12 @@ document.addEventListener('DOMContentLoaded', function () {
         // Default data for empty charts
         chartData = [{ x: isDuration ? 0 : new Date().toISOString().split('T')[0], y: 0 }];
       }
+      // Calculate min/max for x
+      const xVals = isDuration
+        ? chartData.map(d => d.x)
+        : chartData.map(d => new Date(d.x).getTime());
+      const xMin = Math.min(...xVals);
+      const xMax = Math.max(...xVals);
 
       new Chart(canvas.getContext('2d'), {
         type: 'line',
@@ -232,6 +247,8 @@ document.addEventListener('DOMContentLoaded', function () {
           scales: {
             x: isDuration ? {
               type: 'linear',
+              min: xMin,
+              max: xMax,
               title: {
                 display: true,
                 text: 'Hours',
@@ -245,6 +262,8 @@ document.addEventListener('DOMContentLoaded', function () {
               grid: { color: '#333' }
             } : {
               type: 'time',
+              min: new Date(xMin),
+              max: new Date(xMax),
               time: { unit: 'day' },
               title: {
                 display: true,
@@ -271,6 +290,22 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       });
+    });
+  }
+});
+
+// --- Tips Included in PnL Slider Toggle Functionality ---
+document.addEventListener('DOMContentLoaded', function() {
+  const tipsToggle = document.getElementById('tips-toggle');
+  if (tipsToggle) {
+    tipsToggle.addEventListener('change', function() {
+      const url = new URL(window.location.href);
+      if (this.checked) {
+        url.searchParams.set('tips_included', '1');
+      } else {
+        url.searchParams.set('tips_included', '0');
+      }
+      window.location.href = url.toString();
     });
   }
 });

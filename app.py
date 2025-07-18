@@ -78,11 +78,210 @@ def dashboard():
     from logs import SessionRecord, LedSessRecord
     sync_ledsess()  # Always update LedSess before rendering dashboard
 
-    # print(f"\n=== DASHBOARD LOADED FOR USER {current_user.id} ===")
+    tips_included = request.args.get('tips_included', '0') == '1'
+    
+    # Debug: Print user's game preference
+    print(f"DEBUG: User {current_user.id} game_preference = '{current_user.game_preference}'")
+
+    # If user is blackjack-only, render the blackjack dashboard
+    if current_user.game_preference == 'blackjack':
+        from logs import BlackjackSession, SessionRecord, LedgerRecord
+        # Get all blackjack sessions for this user
+        sessions = (
+            db.session.query(SessionRecord, BlackjackSession)
+            .join(BlackjackSession, BlackjackSession.session_id == SessionRecord.id)
+            .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Blackjack')
+            .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
+            .all()
+        )
+        # Prepare data for template
+        records = []
+        total_sessions = 0
+        total_hours = 0.0
+        total_profit = 0.0
+        best_session = float('-inf')
+        worst_session = float('inf')
+        for s, bj in sessions:
+            profit = (s.money_out or 0) - (s.money_in or 0)
+            # Include tips only if toggle is enabled
+            if tips_included:
+                profit += (s.tips or 0)
+            # Calculate duration in hours
+            if s.time_in and s.time_out:
+                duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                if duration_hours > 0:
+                    hourly_rate = profit / duration_hours
+                else:
+                    hourly_rate = None
+            else:
+                duration_hours = None
+                hourly_rate = None
+            records.append({
+                'id': bj.id,
+                'date': s.date,
+                'change': profit,
+                'source': 'session',
+                'spread': bj.spread or '',
+                'game_speed': bj.game_speed or '',
+                'game_rules': bj.game_rules or '',
+                'system': bj.system or '',
+                'duration_hours': duration_hours,
+                'hourly_rate': hourly_rate
+            })
+            total_sessions += 1
+            if s.time_in and s.time_out:
+                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                total_hours += duration
+            if profit > best_session:
+                best_session = profit
+            if profit < worst_session:
+                worst_session = profit
+            total_profit += profit
+        if total_sessions == 0:
+            best_session = 0.0
+            worst_session = 0.0
+        # Blackjack P/L chart (cumulative profit over time)
+        sessions_chrono = list(reversed(sessions))
+        chart_points = []
+        cumulative = 0
+        hours = 0
+        for s, bj in sessions_chrono:
+            profit = (s.money_out or 0) - (s.money_in or 0)
+            if tips_included:
+                profit += (s.tips or 0)
+            cumulative += profit
+            if s.time_in and s.time_out:
+                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                hours += duration
+            chart_points.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
+        if not chart_points or chart_points[0]['x'] != 0:
+            chart_points = [{'x': 0, 'y': 0}] + chart_points
+        # Blackjack Bankroll chart (from ledger and sessions)
+        ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Blackjack').order_by(LedgerRecord.date).all()
+        combined = []
+        for s, bj in sessions_chrono:
+            profit = (s.money_out or 0) - (s.money_in or 0)
+            if tips_included:
+                profit += (s.tips or 0)
+            combined.append({'date': s.date, 'change': profit})
+        for l in ledger_rows:
+            combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
+        combined.sort(key=lambda x: x['date'])
+        bankroll_points = []
+        bankroll = 0
+        for item in combined:
+            bankroll += item['change']
+            bankroll_points.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
+        bj_stats = {
+            'total_sessions': total_sessions,
+            'total_hours': total_hours,
+            'total_profit': total_profit,
+            'best_session': best_session,
+            'worst_session': worst_session
+        }
+        print("DEBUG: Rendering dashboard_blackjack.html")
+        return render_template('dashboard_blackjack.html', records=records, bj_stats=bj_stats, bj_chart=chart_points, bj_bankroll=bankroll_points, tips_included=tips_included)
+
+    # If user is poker-only, render the poker dashboard
+    elif current_user.game_preference == 'poker':
+        from logs import SessionRecord, LedgerRecord
+        # Get all poker sessions for this user
+        sessions = (
+            db.session.query(SessionRecord)
+            .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Poker')
+            .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
+            .all()
+        )
+        # Prepare data for template
+        records = []
+        total_sessions = 0
+        total_hours = 0.0
+        total_profit = 0.0
+        best_session = float('-inf')
+        worst_session = float('inf')
+        for s in sessions:
+            profit = (s.money_out or 0) - (s.money_in or 0)
+            # Include tips only if toggle is enabled
+            if tips_included:
+                profit += (s.tips or 0)
+            # Calculate duration in hours
+            if s.time_in and s.time_out:
+                duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                if duration_hours > 0:
+                    hourly_rate = profit / duration_hours
+                else:
+                    hourly_rate = None
+            else:
+                duration_hours = None
+                hourly_rate = None
+            records.append({
+                'id': s.id,
+                'date': s.date,
+                'change': profit,
+                'source': 'session',
+                'stakes': s.stakes or '',
+                'softness': getattr(s, 'softness', None),
+                'focus': getattr(s, 'focus', None),
+                'duration_hours': duration_hours,
+                'hourly_rate': hourly_rate
+            })
+            total_sessions += 1
+            if s.time_in and s.time_out:
+                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                total_hours += duration
+            if profit > best_session:
+                best_session = profit
+            if profit < worst_session:
+                worst_session = profit
+            total_profit += profit
+        if total_sessions == 0:
+            best_session = 0.0
+            worst_session = 0.0
+        # Poker P/L chart (cumulative profit over time)
+        sessions_chrono = list(reversed(sessions))
+        chart_points = []
+        cumulative = 0
+        hours = 0
+        for s in sessions_chrono:
+            profit = (s.money_out or 0) - (s.money_in or 0)
+            if tips_included:
+                profit += (s.tips or 0)
+            cumulative += profit
+            if s.time_in and s.time_out:
+                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                hours += duration
+            chart_points.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
+        if not chart_points or chart_points[0]['x'] != 0:
+            chart_points = [{'x': 0, 'y': 0}] + chart_points
+        # Poker Bankroll chart (from ledger and sessions)
+        ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Poker').order_by(LedgerRecord.date).all()
+        combined = []
+        for s in sessions_chrono:
+            profit = (s.money_out or 0) - (s.money_in or 0)
+            if tips_included:
+                profit += (s.tips or 0)
+            combined.append({'date': s.date, 'change': profit})
+        for l in ledger_rows:
+            combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
+        combined.sort(key=lambda x: x['date'])
+        bankroll_points = []
+        bankroll = 0
+        for item in combined:
+            bankroll += item['change']
+            bankroll_points.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
+        poker_stats = {
+            'total_sessions': total_sessions,
+            'total_hours': total_hours,
+            'total_profit': total_profit,
+            'best_session': best_session,
+            'worst_session': worst_session
+        }
+        return render_template('dashboard_poker.html', records=records, poker_stats=poker_stats, poker_chart=chart_points, poker_bankroll=bankroll_points, tips_included=tips_included)
+
+    tips_included = request.args.get('tips_included', '0') == '1'
 
     # === Chart 1: Cumulative Profit (PnL vs Time) ===
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).order_by(SessionRecord.date, SessionRecord.time_in).all()
-    # print(f"[dashboard] Found {len(sessions)} sessions for user {current_user.id}")
     
     cumulative_profit = 0
     cumulative_time = 0
@@ -91,7 +290,8 @@ def dashboard():
     for i, s in enumerate(sessions):
         money_in = s.money_in or 0
         money_out = s.money_out or 0
-        profit = money_out - money_in
+        tips = s.tips or 0
+        profit = (money_out - money_in + tips) if tips_included else (money_out - money_in)
         cumulative_profit += profit
         
         if s.time_in and s.time_out:
@@ -101,68 +301,53 @@ def dashboard():
             
         cumulative_time += duration
         chart_point_map[round(cumulative_time, 2)] = round(cumulative_profit, 2)
-        # print(f"  Session {i+1}: {s.date} {s.type} - Money: ${money_in}→${money_out} (Profit: ${profit}) - Time: {duration:.2f}h - Cumulative: ${cumulative_profit:.2f}")
     
     chart_points = [{"x": x, "y": y} for x, y in sorted(chart_point_map.items())]
-    # Ensure chart always starts at (0, 0)
     if not chart_points or chart_points[0]["x"] != 0:
         chart_points = [{"x": 0, "y": 0}] + chart_points
-    # print('[dashboard] Cumulative Profit chart_points:', chart_points)
 
     unique_types = sorted(set(s.type for s in sessions if s.type))
-    # print(f'[dashboard] Unique venture types: {unique_types}')
 
     # === Chart 2: Total Bankroll by Date (from LedSess) ===
     ledsess_entries = LedSessRecord.query.filter_by(user_id=current_user.id).order_by(LedSessRecord.date, LedSessRecord.id).all()
-    # print(f"[dashboard] Found {len(ledsess_entries)} LedSess entries for user {current_user.id}")
-    
     cumulative = 0
     date_to_cumulative = {}
-    
     for entry in ledsess_entries:
         cumulative += entry.value or 0
         date_str = entry.date.isoformat()
         date_to_cumulative[date_str] = cumulative
-        # print(f"  LedSess: {entry.date} {entry.type} ${entry.value:.2f} → Cumulative: ${cumulative:.2f}")
-    
     combined_chart_data = [
         {"x": date, "y": round(val, 2)} for date, val in sorted(date_to_cumulative.items())
     ]
-    # print('[dashboard] Total Bankroll by Date combined_chart_data:', combined_chart_data)
 
     # === Chart 3: Venture Charts ===
     venture_chart_map = defaultdict(list)
     venture_cumulative = defaultdict(float)
     venture_elapsed_time = defaultdict(float)
-    
     for s in sessions:
         venture = s.type or "Unknown"
+        tips = s.tips or 0
         profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += tips
         venture_cumulative[venture] += profit
-
         if venture in ("Poker", "Blackjack"):
-            # Always use hours as x-axis for Poker/Blackjack
             if s.time_in and s.time_out:
                 duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
                 venture_elapsed_time[venture] += duration
                 x_val = round(venture_elapsed_time[venture], 2)
             else:
-                continue  # skip if no time info
+                continue
         else:
-            # For other ventures (e.g., Match Play), use date as x-axis
             if s.date:
                 x_val = s.date.isoformat()
             else:
                 continue
-
         venture_chart_map[venture].append({
             "x": x_val,
             "y": round(venture_cumulative[venture], 2)
         })
-        # print(f"  Venture {venture}: x={x_val}, y=${venture_cumulative[venture]:.2f}")
-    
     venture_chart_data = dict(venture_chart_map)
-    # print('[dashboard] Venture chart data:', venture_chart_data)
 
     # === All Time Statistics ===
     total_sessions = len(sessions)
@@ -172,7 +357,10 @@ def dashboard():
     worst_session = float('inf')
     total_comps = 0.0
     for s in sessions:
+        tips = s.tips or 0
         profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += tips
         total_profit += profit
         total_comps += (s.comps_out or 0)
         if s.time_in and s.time_out:
@@ -201,27 +389,31 @@ def dashboard():
         'comps_realized': round(comps_realized, 2)
     }
     # --- Personal Bests ---
-    # Longest winning streak (consecutive positive profit sessions)
     longest_streak = 0
     current_streak = 0
     for s in sessions:
+        tips = s.tips or 0
         profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += tips
         if profit > 0:
             current_streak += 1
             if current_streak > longest_streak:
                 longest_streak = current_streak
         else:
             current_streak = 0
-    # Most profitable day
     profit_by_date = defaultdict(float)
     for s in sessions:
+        tips = s.tips or 0
         if s.date:
-            profit_by_date[s.date] += (s.money_out or 0) - (s.money_in or 0)
+            profit = (s.money_out or 0) - (s.money_in or 0)
+            if tips_included:
+                profit += tips
+            profit_by_date[s.date] += profit
     if profit_by_date:
         most_profitable_day = max(profit_by_date.items(), key=lambda x: x[1])
     else:
         most_profitable_day = (None, 0)
-    # Longest session (hours)
     longest_session = 0.0
     for s in sessions:
         if s.time_in and s.time_out:
@@ -243,7 +435,8 @@ def dashboard():
         game_preference=current_user.game_preference,
         all_time_stats=all_time_stats,
         personal_bests=personal_bests,
-        reminders=reminders
+        reminders=reminders,
+        tips_included=tips_included
     )
 
 
@@ -438,7 +631,8 @@ def view_logs():
                          datetime=datetime, 
                          location_colors=location_colors,
                          session_type=session_type,
-                         blackjack_sessions=blackjack_sessions)
+                         blackjack_sessions=blackjack_sessions,
+                         hide_time_columns=(session_type == 'Match Play'))
 
 
 
@@ -742,6 +936,7 @@ def edit_ledger_entry(ledger_id):
 @app.route('/poker')
 @login_required
 def view_poker():
+    tips_included = request.args.get('tips_included', '0') == '1'
     # Get all poker sessions for this user
     sessions = (
         db.session.query(SessionRecord)
@@ -758,6 +953,9 @@ def view_poker():
     worst_session = float('inf')
     for s in sessions:
         profit = (s.money_out or 0) - (s.money_in or 0)
+        # Include tips only if toggle is enabled
+        if tips_included:
+            profit += (s.tips or 0)
         # Calculate duration in hours
         if s.time_in and s.time_out:
             duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
@@ -796,6 +994,8 @@ def view_poker():
     hours = 0
     for s in sessions_chrono:
         profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += (s.tips or 0)
         cumulative += profit
         if s.time_in and s.time_out:
             duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
@@ -808,7 +1008,10 @@ def view_poker():
     ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Poker').order_by(LedgerRecord.date).all()
     combined = []
     for s in sessions_chrono:
-        combined.append({'date': s.date, 'change': (s.money_out or 0) - (s.money_in or 0)})
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += (s.tips or 0)
+        combined.append({'date': s.date, 'change': profit})
     for l in ledger_rows:
         combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
     combined.sort(key=lambda x: x['date'])
@@ -824,13 +1027,122 @@ def view_poker():
         'best_session': best_session,
         'worst_session': worst_session
     }
-    return render_template('poker.html', records=records, poker_chart=chart_points, poker_bankroll=bankroll_points, poker_stats=poker_stats)
+    return render_template('poker.html', records=records, poker_chart=chart_points, poker_bankroll=bankroll_points, poker_stats=poker_stats, tips_included=tips_included)
+
+@app.route('/matchplay')
+@login_required
+def view_matchplay():
+    tips_included = request.args.get('tips_included', '0') == '1'
+    # Get all match play sessions for this user
+    sessions = (
+        db.session.query(SessionRecord)
+        .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Match Play')
+        .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
+        .all()
+    )
+    # Prepare data for template
+    records = []
+    total_sessions = 0
+    total_hours = 0.0
+    total_profit = 0.0
+    best_session = float('-inf')
+    worst_session = float('inf')
+    total_promos = 0
+    total_promo_value = 0.0
+    successful_sessions = 0
+    
+    for s in sessions:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        # Include tips only if toggle is enabled
+        if tips_included:
+            profit += (s.tips or 0)
+        # Calculate duration in hours
+        if s.time_in and s.time_out:
+            duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            if duration_hours > 0:
+                hourly_rate = profit / duration_hours
+            else:
+                hourly_rate = None
+        else:
+            duration_hours = None
+            hourly_rate = None
+        
+        # Extract match play specific data (assuming stored in notes or other fields)
+        promo_value = getattr(s, 'promo_value', 0) or 0
+        promo_type = getattr(s, 'promo_type', '') or ''
+        casino = getattr(s, 'casino', '') or ''
+        game_type = getattr(s, 'game_type', '') or ''
+        success = 'Yes' if profit > 0 else 'No'
+        
+        records.append({
+            'id': s.id,
+            'date': s.date,
+            'change': profit,
+            'source': 'session',
+            'promo_value': promo_value,
+            'promo_type': promo_type,
+            'casino': casino,
+            'game_type': game_type,
+            'success': success,
+            'duration_hours': duration_hours,
+            'hourly_rate': hourly_rate
+        })
+        total_sessions += 1
+        if s.time_in and s.time_out:
+            duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+            total_hours += duration
+        if profit > best_session:
+            best_session = profit
+        if profit < worst_session:
+            worst_session = profit
+        total_profit += profit
+        if promo_value > 0:
+            total_promos += 1
+            total_promo_value += promo_value
+        if profit > 0:
+            successful_sessions += 1
+    
+    if total_sessions == 0:
+        best_session = 0.0
+        worst_session = 0.0
+        avg_promo_value = 0.0
+        success_rate = 0.0
+    else:
+        avg_promo_value = total_promo_value / total_promos if total_promos > 0 else 0.0
+        success_rate = (successful_sessions / total_sessions) * 100
+    
+    # Match Play P/L chart (cumulative profit over time by date)
+    sessions_chrono = list(reversed(sessions))
+    chart_points = []
+    cumulative = 0
+    for s in sessions_chrono:
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += (s.tips or 0)
+        cumulative += profit
+        chart_points.append({'x': s.date.isoformat(), 'y': round(cumulative, 2)})
+    if not chart_points:
+        chart_points = [{'x': datetime.now().date().isoformat(), 'y': 0}]
+    
+    mp_stats = {
+        'total_sessions': total_sessions,
+        'total_hours': total_hours,
+        'total_profit': total_profit,
+        'best_session': best_session,
+        'worst_session': worst_session,
+        'total_promos': total_promos,
+        'avg_promo_value': avg_promo_value,
+        'success_rate': success_rate
+    }
+    return render_template('matchplay.html', records=records, mp_chart=chart_points, mp_stats=mp_stats, tips_included=tips_included, from_matchplay=True)
 
 @app.route('/blackjack')
 @login_required
 def view_blackjack():
     sync_blackjack_sessions()
     from logs import BlackjackSession, SessionRecord, LedgerRecord
+    
+    tips_included = request.args.get('tips_included', '0') == '1'
     # Get all blackjack sessions for this user
     sessions = (
         db.session.query(SessionRecord, BlackjackSession)
@@ -848,6 +1160,9 @@ def view_blackjack():
     worst_session = float('inf')
     for s, bj in sessions:
         profit = (s.money_out or 0) - (s.money_in or 0)
+        # Include tips only if toggle is enabled
+        if tips_included:
+            profit += (s.tips or 0)
         # Calculate duration in hours
         if s.time_in and s.time_out:
             duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
@@ -890,6 +1205,8 @@ def view_blackjack():
     hours = 0
     for s, bj in sessions_chrono:
         profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += (s.tips or 0)
         cumulative += profit
         if s.time_in and s.time_out:
             duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
@@ -902,7 +1219,10 @@ def view_blackjack():
     ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Blackjack').order_by(LedgerRecord.date).all()
     combined = []
     for s, bj in sessions_chrono:
-        combined.append({'date': s.date, 'change': (s.money_out or 0) - (s.money_in or 0)})
+        profit = (s.money_out or 0) - (s.money_in or 0)
+        if tips_included:
+            profit += (s.tips or 0)
+        combined.append({'date': s.date, 'change': profit})
     for l in ledger_rows:
         combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
     combined.sort(key=lambda x: x['date'])
@@ -918,7 +1238,7 @@ def view_blackjack():
         'best_session': best_session,
         'worst_session': worst_session
     }
-    return render_template('blackjack.html', records=records, bj_chart=chart_points, bj_bankroll=bankroll_points, bj_stats=bj_stats)
+    return render_template('blackjack.html', records=records, bj_chart=chart_points, bj_bankroll=bankroll_points, bj_stats=bj_stats, tips_included=tips_included)
 
 
 

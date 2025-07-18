@@ -173,7 +173,7 @@ function processDonation() {
   localStorage.setItem('donationInfo', JSON.stringify(donationInfo));
   
   // Redirect to PayPal with the selected amount and user email
-  const paypalUrl = selectedAmount === 10    ? `https://www.paypal.com/donate/?hosted_button_id=H877BC6B5M36custom=${encodeURIComponent(email)}`
+  const paypalUrl = selectedAmount === 10    ? `https://www.paypal.com/donate/?hosted_button_id=H877ABC6B5M36&custom=${encodeURIComponent(email)}`
     : `https://www.paypal.com/donate/?hosted_button_id=EZX8HX4FCBQGW&custom=${encodeURIComponent(email)}`;
   window.open(paypalUrl, '_blank');
   

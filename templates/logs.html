@@ -37,8 +37,10 @@
             {% if session_type == 'Poker' %}
             <th style="width: 80px;">Stakes</th>
             {% endif %}
+            {% if not hide_time_columns %}
             <th style="width: 60px;">Time In</th>
             <th style="width: 60px;">Time Out</th>
+            {% endif %}
             <th style="width: 80px;">$ In</th>
             <th style="width: 80px;">$ Out</th>
             <th style="width: 65px;">Comps In</th>
@@ -71,12 +73,14 @@
               {{ session.stakes or '—' }}
             </td>
             {% endif %}
+            {% if not hide_time_columns %}
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ session.time_in.strftime('%I:%M %p') if session.time_in else '—' }}
             </td>
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ session.time_out.strftime('%I:%M %p') if session.time_out else '—' }}
             </td>
+            {% endif %}
             <td style="white-space: nowrap; vertical-align: middle;">
               {{ "$%.2f"|format(session.money_in) if session.money_in is not none else '—' }}
             </td>
@@ -169,8 +173,10 @@
               {% if session_type == 'Poker' %}
               <th style="width: 100px;">Stakes</th>
               {% endif %}
+              {% if not hide_time_columns %}
               <th style="width: 90px;">Time In</th>
               <th style="width: 90px;">Time Out</th>
+              {% endif %}
               <th style="width: 70px;">$ In</th>
               <th style="width: 70px;">$ Out</th>
               <th style="width: 65px;">Comps In</th>
@@ -204,8 +210,10 @@
               {% if session_type == 'Poker' %}
               <td><input type="text" name="stakes_{{ session.id }}" value="{{ session.stakes or '' }}" class="modal-input"></td>
               {% endif %}
+              {% if not hide_time_columns %}
               <td><input type="time" name="time_in_{{ session.id }}" value="{{ session.time_in.strftime('%H:%M') if session.time_in else '' }}" class="modal-input"></td>
               <td><input type="time" name="time_out_{{ session.id }}" value="{{ session.time_out.strftime('%H:%M') if session.time_out else '' }}" class="modal-input"></td>
+              {% endif %}
               <td><input type="number" step="0.01" name="money_in_{{ session.id }}" value="{{ '%.2f'|format(session.money_in or 0) }}" class="modal-input"></td>
               <td><input type="number" step="0.01" name="money_out_{{ session.id }}" value="{{ '%.2f'|format(session.money_out or 0) }}" class="modal-input"></td>
               <td><input type="number" step="0.01" name="comps_in_{{ session.id }}" value="{{ '%.2f'|format(session.comps_in or 0) }}" class="modal-input"></td>

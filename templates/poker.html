@@ -20,6 +20,13 @@
         <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ '%.2f'|format(poker_stats.best_session) }}</span></li>
         <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ '%.2f'|format(poker_stats.worst_session) }}</span></li>
       </ul>
+      <div style="margin-top: 1.2em; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="color: #ccc; font-size: 0.85em; text-align: center; margin-bottom: 0.5em;">Include Tips in PnL</div>
+        <label class="custom-slider-switch">
+          <input type="checkbox" id="tips-toggle" {% if tips_included %}checked{% endif %}>
+          <span class="custom-slider"></span>
+        </label>
+      </div>
       <!-- Variance Analysis visually separated -->
       <div style="margin-top: 2rem; background: #111; border-radius: 10px; padding: 1rem; box-shadow: 0 0 0 1px #222;">
         <h3 style="color: #ffffff; font-family: Consolas, monospace; margin-top: 0; font-size: 0.85rem;">Variance Analysis</h3>
@@ -111,13 +118,17 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 <script>
 // Poker P/L Chart
+const pokerPLData = {{ poker_chart | tojson }};
 const pokerPLCtx = document.getElementById('pokerPLChart').getContext('2d');
+const pokerPLXVals = pokerPLData.map(d => d.x);
+const pokerPLXMin = Math.min(...pokerPLXVals);
+const pokerPLXMax = Math.max(...pokerPLXVals);
 new Chart(pokerPLCtx, {
   type: 'line',
   data: {
     datasets: [{
       label: '',
-      data: {{ poker_chart | tojson }},
+      data: pokerPLData,
       borderColor: '#00ff99',
       backgroundColor: 'rgba(0, 255, 153, 0.1)',
       borderWidth: 2,
@@ -151,6 +162,8 @@ new Chart(pokerPLCtx, {
     scales: {
       x: {
         type: 'linear',
+        min: pokerPLXMin,
+        max: pokerPLXMax,
         title: {
           display: true,
           text: 'Hours',
@@ -178,13 +191,17 @@ new Chart(pokerPLCtx, {
 });
 
 // Poker Bankroll Chart
+const pokerBankrollData = {{ poker_bankroll | tojson }};
 const pokerBankrollCtx = document.getElementById('pokerBankrollChart').getContext('2d');
+const pokerBankrollXVals = pokerBankrollData.map(d => new Date(d.x).getTime());
+const pokerBankrollXMin = Math.min(...pokerBankrollXVals);
+const pokerBankrollXMax = Math.max(...pokerBankrollXVals);
 new Chart(pokerBankrollCtx, {
   type: 'line',
   data: {
     datasets: [{
       label: '',
-      data: {{ poker_bankroll | tojson }},
+      data: pokerBankrollData,
       borderColor: '#00ccff',
       backgroundColor: 'rgba(0, 204, 255, 0.1)',
       borderWidth: 2,
@@ -208,6 +225,8 @@ new Chart(pokerBankrollCtx, {
     scales: {
       x: {
         type: 'time',
+        min: new Date(pokerBankrollXMin),
+        max: new Date(pokerBankrollXMax),
         time: { unit: 'day' },
         ticks: {
           color: '#ffffff',
@@ -266,5 +285,13 @@ function populateStakesDropdowns() {
   });
 }
 document.addEventListener('DOMContentLoaded', populateStakesDropdowns);
+
+// Tips toggle functionality
+document.getElementById('tips-toggle').addEventListener('change', function() {
+  const tipsIncluded = this.checked ? '1' : '0';
+  const currentUrl = new URL(window.location);
+  currentUrl.searchParams.set('tips_included', tipsIncluded);
+  window.location.href = currentUrl.toString();
+});
 </script>
 {% endblock %} 

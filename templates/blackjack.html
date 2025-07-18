@@ -22,6 +22,13 @@
         <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ '%.2f'|format(bj_stats.best_session) }}</span></li>
         <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ '%.2f'|format(bj_stats.worst_session) }}</span></li>
       </ul>
+      <div style="margin-top: 1.2em; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="color: #ccc; font-size: 0.85em; text-align: center; margin-bottom: 0.5em;">Include Tips in PnL</div>
+        <label class="custom-slider-switch">
+          <input type="checkbox" id="tips-toggle" {% if tips_included %}checked{% endif %}>
+          <span class="custom-slider"></span>
+        </label>
+      </div>
       <!-- Variance Analysis visually separated -->
       <div style="margin-top: 2rem; background: #111; border-radius: 10px; padding: 1rem; box-shadow: 0 0 0 1px #222;">
         <h3 style="color: #ffffff; font-family: Consolas, monospace; margin-top: 0; font-size: 0.85rem;">Variance Analysis</h3>
@@ -246,6 +253,14 @@ document.querySelectorAll('.save-bj-row').forEach(btn => {
   btn.onclick = function() { saveRow(btn); };
 });
 
+// Tips toggle functionality
+document.getElementById('tips-toggle').addEventListener('change', function() {
+  const tipsIncluded = this.checked ? '1' : '0';
+  const currentUrl = new URL(window.location);
+  currentUrl.searchParams.set('tips_included', tipsIncluded);
+  window.location.href = currentUrl.toString();
+});
+
 // Chart.js rendering
 // Set device pixel ratio for crisp rendering on high-DPI displays
 Chart.defaults.responsive = true;
@@ -254,7 +269,9 @@ Chart.defaults.devicePixelRatio = window.devicePixelRatio || 1;
 
 const bjChartData = {{ bj_chart|tojson|safe }};
 const bjBankrollData = {{ bj_bankroll|tojson|safe }};
-
+const bjPLXVals = bjChartData.map(d => d.x);
+const bjPLXMin = Math.min(...bjPLXVals);
+const bjPLXMax = Math.max(...bjPLXVals);
 const bjPLChart = new Chart(document.getElementById('bjPLChart').getContext('2d'), {
   type: 'line',
   data: {
@@ -294,6 +311,8 @@ const bjPLChart = new Chart(document.getElementById('bjPLChart').getContext('2d'
     scales: {
       x: {
         type: 'linear',
+        min: bjPLXMin,
+        max: bjPLXMax,
         title: {
           display: true,
           text: 'Hours',
@@ -319,7 +338,9 @@ const bjPLChart = new Chart(document.getElementById('bjPLChart').getContext('2d'
     }
   }
 });
-
+const bjBankrollXVals = bjBankrollData.map(d => new Date(d.x).getTime());
+const bjBankrollXMin = Math.min(...bjBankrollXVals);
+const bjBankrollXMax = Math.max(...bjBankrollXVals);
 const bjBankrollChart = new Chart(document.getElementById('bjBankrollChart').getContext('2d'), {
   type: 'line',
   data: {
@@ -348,6 +369,8 @@ const bjBankrollChart = new Chart(document.getElementById('bjBankrollChart').get
     scales: {
       x: {
         type: 'time',
+        min: new Date(bjBankrollXMin),
+        max: new Date(bjBankrollXMax),
         time: { unit: 'day' },
         ticks: {
           color: '#ffffff',
