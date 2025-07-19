@@ -16,7 +16,15 @@
 
 
     <form method="POST" action="{{ url_for('clear_logs') }}" onsubmit="return confirm('Are you sure?');">
-      <button type="submit" class="btn btn-outline-red">Clear All Logs</button>
+      {% if session_type == 'Blackjack' %}
+        <input type="hidden" name="type" value="Blackjack">
+        <button type="submit" class="btn btn-outline-red">Clear All Blackjack Logs</button>
+      {% elif session_type == 'Poker' %}
+        <input type="hidden" name="type" value="Poker">
+        <button type="submit" class="btn btn-outline-red">Clear All Poker Logs</button>
+      {% else %}
+        <button type="submit" class="btn btn-outline-red">Clear All Logs</button>
+      {% endif %}
     </form>
   </div>
 

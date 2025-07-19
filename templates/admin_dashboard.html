@@ -22,16 +22,16 @@
       <p style="color: #ccc; margin: 0;">Feedback Submissions</p>
     </div>
     <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
-      <h3 style="color: #ff6b6b; margin: 0 0 0.5rem 0;">{{ "%.1f"|format(cpu_percent) }}%</h3>
-      <p style="color: #ccc; margin: 0;">CPU Usage</p>
+      <h3 style="color: #00ffff; margin: 0 0 0.5rem 0;">{{ venture_stats.blackjack_users }}</h3>
+      <p style="color: #ccc; margin: 0;">Blackjack Users</p>
     </div>
     <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
-      <h3 style="color: #4ecdc4; margin: 0 0 0.5rem 0;">{{ "%.1f"|format(memory_percent) }}%</h3>
-      <p style="color: #ccc; margin: 0;">Memory Usage</p>
+      <h3 style="color: #ff66cc; margin: 0 0 0.5rem 0;">{{ venture_stats.poker_users }}</h3>
+      <p style="color: #ccc; margin: 0;">Poker Users</p>
     </div>
     <div style="background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center;">
-      <h3 style="color: #45b7d1; margin: 0 0 0.5rem 0;">{{ db_size_mb }} MB</h3>
-      <p style="color: #ccc; margin: 0;">Database Size</p>
+      <h3 style="color: #ffaa00; margin: 0 0 0.5rem 0;">{{ venture_stats.matchplay_users }}</h3>
+      <p style="color: #ccc; margin: 0;">Match Play Users</p>
     </div>
   </div>
 
@@ -65,16 +65,17 @@
       <table class="table" style="table-layout: fixed; width: 100%;">
         <thead>
           <tr>
-            <th style="width: 10%;">Username</th>
-            <th style="width: 15%;">Email</th>
-            <th style="width: 8%;">Signup Date</th>
-            <th style="width: 8%;">Last Login</th>
-            <th style="width: 6%;">Sessions</th>
-            <th style="width: 8%;">Total Hours</th>
-            <th style="width: 8%;">Total Profit</th>
-            <th style="width: 8%;">Storage Used</th>
-            <th style="width: 20%;">Record Counts</th>
-            <th style="width: 9%;">Donations</th>
+            <th style="width: 8%;">Username</th>
+            <th style="width: 12%;">Email</th>
+            <th style="width: 7%;">Signup Date</th>
+            <th style="width: 7%;">Last Login</th>
+            <th style="width: 5%;">Sessions</th>
+            <th style="width: 7%;">Total Hours</th>
+            <th style="width: 7%;">Total Profit</th>
+            <th style="width: 7%;">Storage Used</th>
+            <th style="width: 12%;">Active Ventures</th>
+            <th style="width: 15%;">Record Counts</th>
+            <th style="width: 8%;">Donations</th>
           </tr>
         </thead>
         <tbody>
@@ -90,6 +91,24 @@
               ${{ user.total_profit }}
             </td>
             <td style="color: #45b7d1; text-align: center;">{{ user.storage_usage_mb }} MB</td>
+            <td style="font-size: 0.85em;">
+              {% if user.active_ventures %}
+                {% for venture in user.active_ventures %}
+                  <span style="
+                    display: inline-block; 
+                    background: {% if venture == 'Blackjack' %}#00ffff{% elif venture == 'Poker' %}#ff66cc{% elif venture == 'Match Play' %}#ffaa00{% else %}#666{% endif %}; 
+                    color: #000; 
+                    padding: 0.2rem 0.4rem; 
+                    margin: 0.1rem; 
+                    border-radius: 4px; 
+                    font-size: 0.75em; 
+                    font-weight: bold;
+                  ">{{ venture }}</span>
+                {% endfor %}
+              {% else %}
+                <span style="color: #666; font-style: italic;">None</span>
+              {% endif %}
+            </td>
             <td>
               <div style="font-size: 0.75em; color: #ccc; line-height: 1.2;">
                 <div>Sessions: {{ user.record_counts.sessions }}</div>

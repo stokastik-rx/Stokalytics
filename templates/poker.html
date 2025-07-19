@@ -5,34 +5,67 @@
   <h1>Poker</h1>
   <div class="button-row">
     <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
-    <a href="{{ url_for('view_logs') }}?type=Poker" class="btn">Poker Logs</a>
   </div>
 
   <div class="main-content" style="display: flex; gap: 2.5rem; align-items: flex-start;">
-    <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; max-height: 90vh; flex-shrink: 0;">
-      <!-- Venture Statistics -->
-      <h3 style="color: #ffffff; font-family: Consolas, monospace; font-size: 0.85rem;">Venture Statistics</h3>
-      <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.82em;">
-        <li style="margin-bottom: 0.3em;">Total Profit/Loss: <span style="color:{% if poker_stats.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(poker_stats.total_profit) }}</span></li>
-        <li style="margin-bottom: 0.3em;">Total Sessions: <span style="color:#00ccff; float:right;">{{ poker_stats.total_sessions }}</span></li>
-        <li style="margin-bottom: 0.3em;">Total Hours: <span style="color:#00ccff; float:right;">{{ '%.2f'|format(poker_stats.total_hours) }}</span></li>
-        <li style="margin-bottom: 0.3em;">Hourly Rate: <span style="color:{% if poker_stats.total_hours > 0 and poker_stats.total_profit / poker_stats.total_hours >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(poker_stats.total_profit / poker_stats.total_hours if poker_stats.total_hours > 0 else 0) }}</span></li>
-        <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ '%.2f'|format(poker_stats.best_session) }}</span></li>
-        <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ '%.2f'|format(poker_stats.worst_session) }}</span></li>
-      </ul>
-      <div style="margin-top: 1.2em; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <div style="color: #ccc; font-size: 0.85em; text-align: center; margin-bottom: 0.5em;">Include Tips in PnL</div>
-        <label class="custom-slider-switch">
-          <input type="checkbox" id="tips-toggle" {% if tips_included %}checked{% endif %}>
-          <span class="custom-slider"></span>
-        </label>
+    <!-- Sidebar Column: vertical flex for stacking -->
+    <div class="sidebar-scroll" style="display: flex; flex-direction: column; align-items: stretch; gap: 0; height: calc(100vh - 70px); overflow-y: scroll; min-height: 0;">
+      <!-- Poker Tools Box -->
+      <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; font-size: 0.92em; height: auto; min-height: 0;">
+        <h3 style="color: #ffffff; font-family: Consolas, monospace; font-size: 0.85rem;">Poker Tools</h3>
+        <ul style="list-style: none; padding-left: 0; color: #aaa; font-size: 0.92em;">
+          <li style="padding: 0.25rem 0; border-bottom: 1px solid #222;">
+            <a href="{{ url_for('view_logs') }}?type=Poker" style="color: #00ff99; text-decoration: none; font-weight: bold;">Poker Logs</a>
+          </li>
+        </ul>
       </div>
-      <!-- Variance Analysis visually separated -->
-      <div style="margin-top: 2rem; background: #111; border-radius: 10px; padding: 1rem; box-shadow: 0 0 0 1px #222;">
-        <h3 style="color: #ffffff; font-family: Consolas, monospace; margin-top: 0; font-size: 0.85rem;">Variance Analysis</h3>
+      
+      <!-- Venture Statistics Box -->
+      <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.5rem; font-size: 0.90em; height: auto; min-height: 0;">
+        <h3 style="color: #ffffff; font-family: Consolas, monospace; font-size: 0.85rem;">Venture Statistics</h3>
+        <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.82em;">
+          <li style="margin-bottom: 0.3em;">Total Profit/Loss: <span style="color:{% if poker_stats.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(poker_stats.total_profit) }}</span></li>
+          <li style="margin-bottom: 0.3em;">Total Sessions: <span style="color:#00ccff; float:right;">{{ poker_stats.total_sessions }}</span></li>
+          <li style="margin-bottom: 0.3em;">Total Hours: <span style="color:#00ccff; float:right;">{{ '%.2f'|format(poker_stats.total_hours) }}</span></li>
+          <li style="margin-bottom: 0.3em;">Hourly Rate: <span style="color:{% if poker_stats.total_hours > 0 and poker_stats.total_profit / poker_stats.total_hours >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ '%.2f'|format(poker_stats.total_profit / poker_stats.total_hours if poker_stats.total_hours > 0 else 0) }}</span></li>
+          <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ '%.2f'|format(poker_stats.best_session) }}</span></li>
+          <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ '%.2f'|format(poker_stats.worst_session) }}</span></li>
+        </ul>
+        <div style="margin-top: 1.2em; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div style="color: #ccc; font-size: 0.85em; text-align: center; margin-bottom: 0.5em;">Include Tips in PnL</div>
+          <label class="custom-slider-switch">
+            <input type="checkbox" id="tips-toggle" {% if tips_included %}checked{% endif %}>
+            <span class="custom-slider"></span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Variance Analysis Box -->
+      <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.2rem; font-size: 0.89em; height: auto; min-height: 0;">
+        <h3 style="color: #ffffff; font-family: Consolas, monospace; font-size: 0.85rem;">Variance Analysis</h3>
         <div style="color: #ccc; font-size: 0.81em;">(Coming soon)</div>
       </div>
     </div>
+    <style>
+    /* Custom scrollbar for sidebar - matches site style */
+    .main-content > div[style*='flex-direction: column'] {
+      scrollbar-width: thin;
+      scrollbar-color: #444 #222;
+    }
+    .main-content > div[style*='flex-direction: column']::-webkit-scrollbar {
+      width: 10px;
+      background: #222;
+      border-radius: 8px;
+    }
+    .main-content > div[style*='flex-direction: column']::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 8px;
+      min-height: 40px;
+    }
+    .main-content > div[style*='flex-direction: column']::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    </style>
     <div style="flex: 1; min-width: 0;">
       <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
         <div class="chart chart-wide" style="flex: 1; height: 280px;">

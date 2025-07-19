@@ -144,12 +144,22 @@ class DonationRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False) # Donation amount
-    tier = db.Column(db.String(50))  # $10, $50.
-    paypal_transaction_id = db.Column(db.String(10), unique=True)  # PayPal transaction ID
+    tier = db.Column(db.String(20), nullable=False)  # $10, $50.
+    paypal_transaction_id = db.Column(db.String(100), unique=True)  # PayPal transaction ID
     paypal_email = db.Column(db.String(120))  # Donor's PayPal email
-    status = db.Column(db.String(20), default='completed')  # completed, pending, failed
+    status = db.Column(db.String(20), default='pending')  # completed, pending, failed
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationship to user
     user = db.relationship('User', backref=db.backref('donations', lazy=True))
+
+
+class UserVenture(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    venture_type = db.Column(db.String(50), nullable=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Ensure unique venture types per user
+    __table_args__ = (db.UniqueConstraint('user_id', 'venture_type', name='_user_venture_uc'),)
 

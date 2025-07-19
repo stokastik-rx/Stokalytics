@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block body_class %}roadmap-page{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; margin: 0 auto; padding: 2.5rem 0;">
+  <h1 style="text-align: center; color: #00ff99; font-family: 'JetBrains Mono', monospace; margin-bottom: 2.2rem; text-shadow: 0 0 12px #00ff9955;">Stokalytics Roadmap</h1>
+
+  <div style="display: flex; justify-content: center; gap: 1.2rem; margin-bottom: 2.5rem;">
+    <a href="{{ url_for('landing') }}" class="btn" style="background: linear-gradient(45deg, #00ccff, #00ff99); color: #101010; font-weight: bold;">← Back to Home</a>
+    <a href="{{ url_for('donate') }}" class="btn" style="background: linear-gradient(45deg, #ffaa00, #00ccff); color: #101010; font-weight: bold;">Support Development</a>
+  </div>
+
+  <div class="roadmap-timeline">
+    <!-- Official Release -->
+    <div class="roadmap-milestone">
+      <div class="roadmap-icon" style="background: #00ff99;">🚀</div>
+      <div class="roadmap-content">
+        <h2 class="roadmap-title" style="color: #00ff99;">Official Release</h2>
+        <ul class="roadmap-list">
+          <li><b>Smart Upload</b></li>
+          <li><b>Location Badges</b></li>
+          <li><b>Location Logging and Smart Sync</b>
+            <ul>
+              <li style="color:#00ccff;"><b>Blackjack</b>
+                <ul>
+                  <li>Table Rules</li>
+                  <li>Backoff Status</li>
+                </ul>
+              </li>
+              <li style="color:#ff66cc;"><b>Poker</b>
+                <ul>
+                  <li>Player Descriptions</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+          <li><b>Banking</b>
+            <ul>
+              <li style="color:#ffaa00;">Vault Setting</li>
+            </ul>
+          </li>
+          <li><b>Poker Journal</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Socialization -->
+    <div class="roadmap-milestone">
+      <div class="roadmap-icon" style="background: #00ccff;">🕸️</div>
+      <div class="roadmap-content">
+        <h2 class="roadmap-title" style="color: #00ccff;">Socialization</h2>
+        <ul class="roadmap-list">
+          <li>Location Database</li>
+          <li>Players near you</li>
+          <li>Chat</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Cloud Based Tool Suite -->
+    <div class="roadmap-milestone">
+      <div class="roadmap-icon" style="background: #ffaa00;">⚙️</div>
+      <div class="roadmap-content">
+        <h2 class="roadmap-title" style="color: #ffaa00;">Cloud Based Tool Suite</h2>
+        <ul class="roadmap-list">
+          <li>Monte Carlo Bet Ramp Analysis</li>
+          <li>GTO Solver</li>
+          <li>Simulation Based Blackjack Variance Analysis</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Additional Venture Types -->
+    <div class="roadmap-milestone">
+      <div class="roadmap-icon" style="background: #ff66cc;">🎲</div>
+      <div class="roadmap-content">
+        <h2 class="roadmap-title" style="color: #ff66cc;">Additional Venture Types</h2>
+        <ul class="roadmap-list">
+          <li>Trading</li>
+          <li>Tournaments</li>
+          <li>Online Poker</li>
+          <li>Sports Betting</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Secret -->
+    <div class="roadmap-milestone">
+      <div class="roadmap-icon" style="background: #222; color: #fff; border: 2px dashed #00ff99;">🔒</div>
+      <div class="roadmap-content">
+        <h2 class="roadmap-title" style="color: #fff;">[Secret]</h2>
+        <div style="color: #aaa; font-size: 1.08rem; margin-top: 0.7rem; background: #181818; border-radius: 8px; padding: 1rem 1.2rem; border: 1px dashed #00ff99;">
+          <span style="color:#00ff99; font-weight:bold;">Beta Supporters Only:</span> This section is hidden. Become a Beta Supporter to unlock exclusive roadmap details and early access features!
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Highlight the milestone closest to the center of the viewport
+function getDistanceToViewportCenter(element) {
+  const rect = element.getBoundingClientRect();
+  const elCenter = rect.top + rect.height / 2;
+  const viewportCenter = window.innerHeight / 2;
+  return Math.abs(elCenter - viewportCenter);
+}
+
+function highlightMilestones() {
+  const milestones = Array.from(document.querySelectorAll('.roadmap-milestone'));
+  let minDist = Infinity;
+  let closest = null;
+  milestones.forEach((el) => {
+    const dist = getDistanceToViewportCenter(el);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = el;
+    }
+    el.classList.remove('active');
+  });
+  if (closest) closest.classList.add('active');
+}
+
+window.addEventListener('scroll', highlightMilestones);
+window.addEventListener('resize', highlightMilestones);
+window.addEventListener('DOMContentLoaded', highlightMilestones);
+</script>
+<style>
+body.roadmap-page {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.roadmap-timeline {
+  position: relative;
+  margin: 0 auto;
+  padding: 2rem 0 2rem 0.5rem;
+  border-left: 4px solid #00ff9922;
+  max-width: 700px;
+}
+.roadmap-milestone {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 3.5rem;
+  position: relative;
+  transition: box-shadow 0.4s, background 0.4s, opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
+  opacity: 0.15;
+  transform: translateY(60px) scale(0.98);
+}
+.roadmap-milestone.active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  z-index: 2;
+}
+.roadmap-milestone.active .roadmap-content {
+  box-shadow: 0 0 32px 0 #00ff9955, 0 2px 16px #00ff9933;
+  background: #202820;
+  border: 1.5px solid #00ff99;
+  transition: box-shadow 0.4s, background 0.4s, border 0.4s;
+}
+.roadmap-milestone.active .roadmap-icon {
+  filter: brightness(1.2) drop-shadow(0 0 8px #00ff99cc);
+  border-color: #00ff99;
+  transition: filter 0.4s, border 0.4s;
+}
+.roadmap-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-right: 1.5rem;
+  margin-left: -32px;
+  box-shadow: 0 2px 16px #00ff9933;
+  border: 3px solid #222;
+  z-index: 2;
+}
+.roadmap-content {
+  background: #181818;
+  border-radius: 12px;
+  padding: 1.5rem 2rem 1.2rem 1.5rem;
+  box-shadow: 0 2px 16px #00ff9933;
+  min-width: 0;
+  flex: 1;
+}
+.roadmap-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.45rem;
+  margin-bottom: 1.1rem;
+  margin-top: 0;
+  letter-spacing: 0.5px;
+}
+.roadmap-list {
+  color: #fff;
+  font-size: 1.08rem;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-left: 1.2rem;
+  list-style: disc;
+}
+.roadmap-list ul {
+  font-size: 0.98rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.3rem;
+  padding-left: 1.2rem;
+  list-style: circle;
+}
+@media (max-width: 700px) {
+  .roadmap-timeline {
+    border-left: 2px solid #00ff9922;
+    padding-left: 0.2rem;
+  }
+  .roadmap-content {
+    padding: 1.1rem 1rem 1rem 1rem;
+  }
+  .roadmap-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+    margin-right: 0.7rem;
+    margin-left: -18px;
+  }
+}
+</style>
+{% endblock %} 

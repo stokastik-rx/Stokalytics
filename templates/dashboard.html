@@ -18,7 +18,7 @@
     <div style="display: flex; gap: 10px; align-items: center;">
       <a href="{{ url_for('donate') }}" class="btn" style="margin-right: 0;">Support Development</a>
       <button class="btn" onclick="openFeedbackModal()">Give Feedback</button>
-      <a href="#" class="btn">Settings</a>
+      <button class="btn" onclick="openSettingsModal()">Settings</button>
       <a href="{{ url_for('logout')}}" class="btn btn-outline-red">Logout</a>
     </div>
   </div>
@@ -35,7 +35,12 @@
           <button type="button" class="lock-btn" data-target="locationInput">🔒</button>
         </div>
         <div class="input-lock-container">
-          <input type="text" name="type" id="typeInput" placeholder="Type">
+          <select name="type" id="typeInput" required>
+            <option value="">Type</option>
+            {% for type in unique_types %}
+              <option value="{{ type }}">{{ type }}</option>
+            {% endfor %}
+          </select>
           <button type="button" class="lock-btn" data-target="typeInput">🔒</button>
         </div>
         <!-- Stakes input removed as it is now poker-specific -->
@@ -65,7 +70,7 @@
     <!-- Sidebar Column: vertical flex for stacking -->
     <div class="sidebar-scroll" style="display: flex; flex-direction: column; align-items: stretch; gap: 0; height: calc(100vh - 70px); overflow-y: scroll; min-height: 0;">
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; font-size: 0.92em; height: auto; min-height: 0;">
-        <h3 style="color: #ffffff; font-family: Consolas, monospace;">{% if game_preference == 'blackjack' %}🃏 Blackjack{% elif game_preference == 'poker' %}♠️ Poker{% else %}Ventures{% endif %}</h3>
+        <h3 style="color: #ffffff; font-family: Consolas, monospace;">Ventures</h3>
         <ul style="list-style: none; padding-left: 0;">
           {% for type in unique_types %}
             <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">
@@ -81,6 +86,34 @@
             </li>
           {% endfor %}
         </ul>
+        <div id="add-venture-section" style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #333;">
+          <div class="dropdown-container" style="position: relative;">
+            <button id="add-venture-btn" class="btn btn-outline-green" style="width: 100%; font-size: 0.85em; padding: 0.3rem;" onclick="toggleVentureDropdown()">Add Venture</button>
+            <div id="venture-dropdown" class="venture-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; z-index: 1000; margin-top: 2px;">
+              <div class="venture-option" data-venture="Blackjack" onclick="addVenture('Blackjack')">
+                <span style="color: #00ffff;">Blackjack</span>
+              </div>
+              <div class="venture-option" data-venture="Poker" onclick="addVenture('Poker')">
+                <span style="color: #ff66cc;">Poker</span>
+              </div>
+              <div class="venture-option" data-venture="Match Play" onclick="addVenture('Match Play')">
+                <span style="color: #ffaa00;">Match Play</span>
+              </div>
+              <div class="venture-option disabled" data-venture="Day Trading">
+                <span style="color: #666;">Day Trading</span>
+                <span style="color: #666; font-size: 0.8em; margin-left: 0.5rem;">(Coming Soon)</span>
+              </div>
+              <div class="venture-option disabled" data-venture="Sports Betting">
+                <span style="color: #666;">Sports Betting</span>
+                <span style="color: #666; font-size: 0.8em; margin-left: 0.5rem;">(Coming Soon)</span>
+              </div>
+              <div class="venture-option disabled" data-venture="Tournament">
+                <span style="color: #666;">Tournament</span>
+                <span style="color: #666; font-size: 0.8em; margin-left: 0.5rem;">(Coming Soon)</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.5rem; font-size: 0.90em; height: auto; min-height: 0;">
         <h3 style="color: #ffffff; font-family: Consolas, monospace;">All Time Statistics</h3>
@@ -138,6 +171,133 @@
       background: #555;
     }
     </style>
+    
+    <!-- Venture Dropdown Styles -->
+    <style>
+    .venture-dropdown {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .venture-option {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      border-bottom: 1px solid #333;
+      transition: background-color 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .venture-option:last-child {
+      border-bottom: none;
+    }
+    
+    .venture-option:hover:not(.disabled) {
+      background-color: #333;
+    }
+    
+    .venture-option.disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    .venture-option.disabled:hover {
+      background-color: transparent;
+    }
+    
+    /* Session form select styling */
+    .input-lock-container select {
+      width: 100%;
+      padding: 0.5rem;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.9em;
+      outline: none;
+      transition: border-color 0.2s ease;
+      /* Remove dropdown arrow */
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      /* Use same font as other inputs */
+      font-family: inherit;
+    }
+    
+    .input-lock-container select:focus {
+      border-color: #00ff99;
+    }
+    
+    .input-lock-container select option {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 0.5rem;
+      font-family: inherit;
+    }
+    
+    .input-lock-container select option:hover {
+      background: #333;
+    }
+    
+    /* Venture management styles */
+    .venture-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      transition: all 0.2s ease;
+    }
+    
+    .venture-item:hover {
+      border-color: #444;
+      background: #222;
+    }
+    
+    .venture-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .venture-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .venture-name {
+      color: #fff;
+      font-weight: 500;
+    }
+    
+    .delete-venture-btn {
+      background: #ff4444;
+      color: white;
+      border: none;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8em;
+      transition: background-color 0.2s ease;
+    }
+    
+    .delete-venture-btn:hover {
+      background: #cc3333;
+    }
+    
+    .no-ventures {
+      color: #666;
+      font-style: italic;
+      text-align: center;
+      padding: 1rem;
+    }
+    </style>
+    
     <!-- Dashboard Charts -->
     <div class="dashboard-grid" style="flex: 1;">
       <!-- Top Row -->
@@ -212,6 +372,437 @@
     <!-- Quote will be inserted here -->
   </div>
 </div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 500px; width: 90%;">
+    <h3 style="color: #fff; margin-bottom: 1.5rem; text-align: center;">Settings</h3>
+    
+    <div style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <label style="color: #ccc; font-size: 1rem;">Show Add Venture Button:</label>
+        <label class="custom-slider-switch">
+          <input type="checkbox" id="show-venture-btn-toggle" checked>
+          <span class="custom-slider"></span>
+        </label>
+      </div>
+      <div style="color: #666; font-size: 0.9em;">
+        When enabled, the "Add Venture" button will be visible in the Ventures sidebar.
+      </div>
+    </div>
+
+    <!-- Venture Management Section -->
+    <div style="margin-bottom: 2rem;">
+      <h4 style="color: #fff; margin-bottom: 1rem; font-size: 1.1rem;">Manage Ventures</h4>
+      <div id="venture-management-list" style="max-height: 200px; overflow-y: auto;">
+        <!-- Ventures will be loaded here dynamically -->
+      </div>
+      <div style="color: #666; font-size: 0.9em; margin-top: 0.5rem;">
+        Remove ventures you no longer need. This won't delete your session data.
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+      <button type="button" class="btn" style="background: #1a1a1a;" onclick="closeSettingsModal()">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-outline-green" onclick="saveSettings()">
+        Save Settings
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Settings modal functionality - defined immediately after the modal HTML
+function openSettingsModal() {
+  console.log('openSettingsModal called');
+  const modal = document.getElementById('settingsModal');
+  if (!modal) {
+    console.error('Settings modal not found!');
+    return;
+  }
+  modal.style.display = 'flex';
+  // Load current settings
+  const showVentureBtn = localStorage.getItem('showVentureBtn') !== 'false'; // Default to true
+  const toggle = document.getElementById('show-venture-btn-toggle');
+  if (toggle) {
+    toggle.checked = showVentureBtn;
+  }
+  updateVentureButtonVisibility(showVentureBtn);
+  
+  // Load ventures for management
+  loadVenturesForManagement();
+}
+
+function closeSettingsModal() {
+  console.log('closeSettingsModal called');
+  const modal = document.getElementById('settingsModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+function saveSettings() {
+  const showVentureBtn = document.getElementById('show-venture-btn-toggle').checked;
+  localStorage.setItem('showVentureBtn', showVentureBtn);
+  updateVentureButtonVisibility(showVentureBtn);
+  closeSettingsModal();
+}
+
+function updateVentureButtonVisibility(show) {
+  const addVentureSection = document.getElementById('add-venture-section');
+  if (addVentureSection) {
+    addVentureSection.style.display = show ? 'block' : 'none';
+  }
+}
+
+// Venture dropdown functionality
+function toggleVentureDropdown() {
+  const dropdown = document.getElementById('venture-dropdown');
+  if (dropdown) {
+    const isVisible = dropdown.style.display !== 'none';
+    if (!isVisible) {
+      // Show dropdown and filter out existing ventures
+      filterVentureOptions();
+    }
+    dropdown.style.display = isVisible ? 'none' : 'block';
+  }
+}
+
+function filterVentureOptions() {
+  // Get current active ventures from the sidebar
+  const ventureList = document.querySelector('.sidebar ul');
+  const existingVentures = [];
+  
+  if (ventureList) {
+    const ventureItems = ventureList.querySelectorAll('li');
+    ventureItems.forEach(item => {
+      const ventureText = item.textContent.trim();
+      if (ventureText && ventureText !== '') {
+        existingVentures.push(ventureText);
+      }
+    });
+  }
+  
+  // Hide options for ventures that already exist
+  const ventureOptions = document.querySelectorAll('.venture-option');
+  ventureOptions.forEach(option => {
+    const ventureType = option.getAttribute('data-venture');
+    if (existingVentures.includes(ventureType)) {
+      option.style.display = 'none';
+    } else {
+      option.style.display = 'flex';
+    }
+  });
+  
+  // If no options are available, show a message
+  const visibleOptions = Array.from(ventureOptions).filter(option => 
+    option.style.display !== 'none' && !option.classList.contains('disabled')
+  );
+  
+  if (visibleOptions.length === 0) {
+    // Add a "no more ventures" message if it doesn't exist
+    let noMoreMessage = document.getElementById('no-more-ventures');
+    if (!noMoreMessage) {
+      noMoreMessage = document.createElement('div');
+      noMoreMessage.id = 'no-more-ventures';
+      noMoreMessage.style.padding = '0.5rem 0.75rem';
+      noMoreMessage.style.color = '#666';
+      noMoreMessage.style.fontStyle = 'italic';
+      noMoreMessage.style.textAlign = 'center';
+      noMoreMessage.textContent = 'All available ventures added!';
+      dropdown.appendChild(noMoreMessage);
+    }
+    noMoreMessage.style.display = 'block';
+  } else {
+    // Hide the message if there are available options
+    const noMoreMessage = document.getElementById('no-more-ventures');
+    if (noMoreMessage) {
+      noMoreMessage.style.display = 'none';
+    }
+  }
+}
+
+async function addVenture(ventureType) {
+  try {
+    // Send API request to add venture
+    const response = await fetch('/api/user_ventures', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ venture_type: ventureType })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Add the venture to the sidebar
+      const ventureList = document.querySelector('.sidebar ul');
+      if (ventureList) {
+        const newVentureItem = document.createElement('li');
+        newVentureItem.style.color = '#aaa';
+        newVentureItem.style.padding = '0.25rem 0';
+        newVentureItem.style.borderBottom = '1px solid #222';
+        
+        // Create the venture link based on type
+        let ventureLink;
+        if (ventureType === 'Blackjack') {
+          ventureLink = document.createElement('a');
+          ventureLink.href = '/blackjack';
+          ventureLink.style.color = '#00ffff';
+          ventureLink.style.textDecoration = 'none';
+          ventureLink.style.fontWeight = 'bold';
+          ventureLink.textContent = 'Blackjack';
+        } else if (ventureType === 'Poker') {
+          ventureLink = document.createElement('a');
+          ventureLink.href = '/poker';
+          ventureLink.style.color = '#ff66cc';
+          ventureLink.style.textDecoration = 'none';
+          ventureLink.style.fontWeight = 'bold';
+          ventureLink.textContent = 'Poker';
+        } else if (ventureType === 'Match Play') {
+          ventureLink = document.createElement('a');
+          ventureLink.href = '/matchplay';
+          ventureLink.style.color = '#ffaa00';
+          ventureLink.style.textDecoration = 'none';
+          ventureLink.style.fontWeight = 'bold';
+          ventureLink.textContent = 'Match Play';
+        } else {
+          // For other venture types, just show as text
+          ventureLink = document.createTextNode(ventureType);
+        }
+        
+        newVentureItem.appendChild(ventureLink);
+        ventureList.appendChild(newVentureItem);
+      }
+      
+      // Update the session form type dropdown
+      updateSessionFormTypeDropdown();
+      
+      // Close the dropdown
+      toggleVentureDropdown();
+      
+      // Show success message
+      alert(`${ventureType} venture added successfully!`);
+    } else {
+      alert(`Error adding venture: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Error adding venture:', error);
+    alert('Error adding venture. Please try again.');
+  }
+}
+
+function updateSessionFormTypeDropdown() {
+  const typeSelect = document.getElementById('typeInput');
+  if (!typeSelect) return;
+  
+  // Get current ventures from sidebar
+  const ventureList = document.querySelector('.sidebar ul');
+  const currentVentures = [];
+  
+  if (ventureList) {
+    const ventureItems = ventureList.querySelectorAll('li');
+    ventureItems.forEach(item => {
+      const ventureText = item.textContent.trim();
+      if (ventureText && ventureText !== '') {
+        currentVentures.push(ventureText);
+      }
+    });
+  }
+  
+  // Clear existing options except the first placeholder
+  typeSelect.innerHTML = '<option value="">Type</option>';
+  
+  // Add options for current ventures
+  currentVentures.forEach(venture => {
+    const option = document.createElement('option');
+    option.value = venture;
+    option.textContent = venture;
+    typeSelect.appendChild(option);
+  });
+  
+  // Auto-select if only one venture available
+  if (currentVentures.length === 1) {
+    typeSelect.value = currentVentures[0];
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const dropdown = document.getElementById('venture-dropdown');
+  const addVentureBtn = document.getElementById('add-venture-btn');
+  
+  if (dropdown && addVentureBtn) {
+    if (!dropdown.contains(event.target) && !addVentureBtn.contains(event.target)) {
+      dropdown.style.display = 'none';
+    }
+  }
+});
+
+// Initialize settings on page load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, initializing settings');
+  const showVentureBtn = localStorage.getItem('showVentureBtn') !== 'false'; // Default to true
+  updateVentureButtonVisibility(showVentureBtn);
+  
+  // Initialize session form type dropdown
+  updateSessionFormTypeDropdown();
+  
+  // Load user ventures from database
+  loadUserVentures();
+  
+  // Add click outside to close functionality
+  const settingsModal = document.getElementById('settingsModal');
+  if (settingsModal) {
+    settingsModal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeSettingsModal();
+      }
+    });
+  }
+});
+
+async function loadUserVentures() {
+  try {
+    const response = await fetch('/api/user_ventures');
+    const userVentures = await response.json();
+    
+    // Add user ventures to sidebar if they don't already exist
+    const ventureList = document.querySelector('.sidebar ul');
+    if (ventureList) {
+      const existingVentures = Array.from(ventureList.querySelectorAll('li')).map(li => li.textContent.trim());
+      
+      userVentures.forEach(ventureType => {
+        if (!existingVentures.includes(ventureType)) {
+          const newVentureItem = document.createElement('li');
+          newVentureItem.style.color = '#aaa';
+          newVentureItem.style.padding = '0.25rem 0';
+          newVentureItem.style.borderBottom = '1px solid #222';
+          
+          // Create the venture link based on type
+          let ventureLink;
+          if (ventureType === 'Blackjack') {
+            ventureLink = document.createElement('a');
+            ventureLink.href = '/blackjack';
+            ventureLink.style.color = '#00ffff';
+            ventureLink.style.textDecoration = 'none';
+            ventureLink.style.fontWeight = 'bold';
+            ventureLink.textContent = 'Blackjack';
+          } else if (ventureType === 'Poker') {
+            ventureLink = document.createElement('a');
+            ventureLink.href = '/poker';
+            ventureLink.style.color = '#ff66cc';
+            ventureLink.style.textDecoration = 'none';
+            ventureLink.style.fontWeight = 'bold';
+            ventureLink.textContent = 'Poker';
+          } else if (ventureType === 'Match Play') {
+            ventureLink = document.createElement('a');
+            ventureLink.href = '/matchplay';
+            ventureLink.style.color = '#ffaa00';
+            ventureLink.style.textDecoration = 'none';
+            ventureLink.style.fontWeight = 'bold';
+            ventureLink.textContent = 'Match Play';
+          } else {
+            // For other venture types, just show as text
+            ventureLink = document.createTextNode(ventureType);
+          }
+          
+          newVentureItem.appendChild(ventureLink);
+          ventureList.appendChild(newVentureItem);
+        }
+      });
+    }
+    
+    // Update session form dropdown after loading ventures
+    updateSessionFormTypeDropdown();
+  } catch (error) {
+    console.error('Error loading user ventures:', error);
+  }
+}
+
+async function loadVenturesForManagement() {
+  try {
+    const response = await fetch('/api/user_ventures');
+    const userVentures = await response.json();
+    
+    const ventureList = document.getElementById('venture-management-list');
+    if (!ventureList) return;
+    
+    if (userVentures.length === 0) {
+      ventureList.innerHTML = '<div class="no-ventures">No ventures added yet</div>';
+      return;
+    }
+    
+    ventureList.innerHTML = '';
+    
+    userVentures.forEach(ventureType => {
+      const ventureItem = document.createElement('div');
+      ventureItem.className = 'venture-item';
+      
+      // Get venture color
+      let ventureColor = '#666';
+      if (ventureType === 'Blackjack') ventureColor = '#00ffff';
+      else if (ventureType === 'Poker') ventureColor = '#ff66cc';
+      else if (ventureType === 'Match Play') ventureColor = '#ffaa00';
+      
+      ventureItem.innerHTML = `
+        <div class="venture-info">
+          <div class="venture-color" style="background-color: ${ventureColor};"></div>
+          <span class="venture-name">${ventureType}</span>
+        </div>
+        <button class="delete-venture-btn" onclick="deleteVenture('${ventureType}')">Delete</button>
+      `;
+      
+      ventureList.appendChild(ventureItem);
+    });
+  } catch (error) {
+    console.error('Error loading ventures for management:', error);
+  }
+}
+
+async function deleteVenture(ventureType) {
+  if (!confirm(`Are you sure you want to delete the "${ventureType}" venture? This will remove it from your sidebar but won't delete any session data.`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/user_ventures/${encodeURIComponent(ventureType)}`, {
+      method: 'DELETE'
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Remove from sidebar
+      const ventureList = document.querySelector('.sidebar ul');
+      if (ventureList) {
+        const ventureItems = ventureList.querySelectorAll('li');
+        ventureItems.forEach(item => {
+          if (item.textContent.trim() === ventureType) {
+            item.remove();
+          }
+        });
+      }
+      
+      // Update session form dropdown
+      updateSessionFormTypeDropdown();
+      
+      // Reload venture management list
+      loadVenturesForManagement();
+      
+      alert(`${ventureType} venture deleted successfully!`);
+    } else {
+      alert(`Error deleting venture: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Error deleting venture:', error);
+    alert('Error deleting venture. Please try again.');
+  }
+}
+</script>
 
 <script>
 const pokerBlackjackQuotes = [
@@ -532,6 +1123,21 @@ document.addEventListener('DOMContentLoaded', function() {
       url.searchParams.set('tips_included', stored);
       window.location.replace(url.toString());
     }
+  }
+});
+</script>
+
+
+
+<script>
+// Add venture button functionality (placeholder for now)
+document.addEventListener('DOMContentLoaded', function() {
+  const addVentureBtn = document.getElementById('add-venture-btn');
+  if (addVentureBtn) {
+    addVentureBtn.addEventListener('click', function() {
+      // This will be implemented later
+      console.log('Add venture button clicked');
+    });
   }
 });
 </script>

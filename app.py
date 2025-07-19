@@ -14,7 +14,7 @@ from logs import SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord
 from logs import LocationNote  # add LocationNote import
 from logs import BlackjackSpread, BlackjackGameRule
 from logs import BlackjackSession
-from logs import DonationRecord  # add DonationRecord import
+from logs import DonationRecord, UserVenture  # add DonationRecord and UserVenture imports
 
 # --- Helper: Generate random HEX color ---
 def random_color():
@@ -79,206 +79,6 @@ def dashboard():
     sync_ledsess()  # Always update LedSess before rendering dashboard
 
     tips_included = request.args.get('tips_included', '0') == '1'
-    
-    # Debug: Print user's game preference
-    print(f"DEBUG: User {current_user.id} game_preference = '{current_user.game_preference}'")
-
-    # If user is blackjack-only, render the blackjack dashboard
-    if current_user.game_preference == 'blackjack':
-        from logs import BlackjackSession, SessionRecord, LedgerRecord
-        # Get all blackjack sessions for this user
-        sessions = (
-            db.session.query(SessionRecord, BlackjackSession)
-            .join(BlackjackSession, BlackjackSession.session_id == SessionRecord.id)
-            .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Blackjack')
-            .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
-            .all()
-        )
-        # Prepare data for template
-        records = []
-        total_sessions = 0
-        total_hours = 0.0
-        total_profit = 0.0
-        best_session = float('-inf')
-        worst_session = float('inf')
-        for s, bj in sessions:
-            profit = (s.money_out or 0) - (s.money_in or 0)
-            # Include tips only if toggle is enabled
-            if tips_included:
-                profit += (s.tips or 0)
-            # Calculate duration in hours
-            if s.time_in and s.time_out:
-                duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
-                if duration_hours > 0:
-                    hourly_rate = profit / duration_hours
-                else:
-                    hourly_rate = None
-            else:
-                duration_hours = None
-                hourly_rate = None
-            records.append({
-                'id': bj.id,
-                'date': s.date,
-                'change': profit,
-                'source': 'session',
-                'spread': bj.spread or '',
-                'game_speed': bj.game_speed or '',
-                'game_rules': bj.game_rules or '',
-                'system': bj.system or '',
-                'duration_hours': duration_hours,
-                'hourly_rate': hourly_rate
-            })
-            total_sessions += 1
-            if s.time_in and s.time_out:
-                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
-                total_hours += duration
-            if profit > best_session:
-                best_session = profit
-            if profit < worst_session:
-                worst_session = profit
-            total_profit += profit
-        if total_sessions == 0:
-            best_session = 0.0
-            worst_session = 0.0
-        # Blackjack P/L chart (cumulative profit over time)
-        sessions_chrono = list(reversed(sessions))
-        chart_points = []
-        cumulative = 0
-        hours = 0
-        for s, bj in sessions_chrono:
-            profit = (s.money_out or 0) - (s.money_in or 0)
-            if tips_included:
-                profit += (s.tips or 0)
-            cumulative += profit
-            if s.time_in and s.time_out:
-                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
-                hours += duration
-            chart_points.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
-        if not chart_points or chart_points[0]['x'] != 0:
-            chart_points = [{'x': 0, 'y': 0}] + chart_points
-        # Blackjack Bankroll chart (from ledger and sessions)
-        ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Blackjack').order_by(LedgerRecord.date).all()
-        combined = []
-        for s, bj in sessions_chrono:
-            profit = (s.money_out or 0) - (s.money_in or 0)
-            if tips_included:
-                profit += (s.tips or 0)
-            combined.append({'date': s.date, 'change': profit})
-        for l in ledger_rows:
-            combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
-        combined.sort(key=lambda x: x['date'])
-        bankroll_points = []
-        bankroll = 0
-        for item in combined:
-            bankroll += item['change']
-            bankroll_points.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
-        bj_stats = {
-            'total_sessions': total_sessions,
-            'total_hours': total_hours,
-            'total_profit': total_profit,
-            'best_session': best_session,
-            'worst_session': worst_session
-        }
-        print("DEBUG: Rendering dashboard_blackjack.html")
-        return render_template('dashboard_blackjack.html', records=records, bj_stats=bj_stats, bj_chart=chart_points, bj_bankroll=bankroll_points, tips_included=tips_included)
-
-    # If user is poker-only, render the poker dashboard
-    elif current_user.game_preference == 'poker':
-        from logs import SessionRecord, LedgerRecord
-        # Get all poker sessions for this user
-        sessions = (
-            db.session.query(SessionRecord)
-            .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Poker')
-            .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
-            .all()
-        )
-        # Prepare data for template
-        records = []
-        total_sessions = 0
-        total_hours = 0.0
-        total_profit = 0.0
-        best_session = float('-inf')
-        worst_session = float('inf')
-        for s in sessions:
-            profit = (s.money_out or 0) - (s.money_in or 0)
-            # Include tips only if toggle is enabled
-            if tips_included:
-                profit += (s.tips or 0)
-            # Calculate duration in hours
-            if s.time_in and s.time_out:
-                duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
-                if duration_hours > 0:
-                    hourly_rate = profit / duration_hours
-                else:
-                    hourly_rate = None
-            else:
-                duration_hours = None
-                hourly_rate = None
-            records.append({
-                'id': s.id,
-                'date': s.date,
-                'change': profit,
-                'source': 'session',
-                'stakes': s.stakes or '',
-                'softness': getattr(s, 'softness', None),
-                'focus': getattr(s, 'focus', None),
-                'duration_hours': duration_hours,
-                'hourly_rate': hourly_rate
-            })
-            total_sessions += 1
-            if s.time_in and s.time_out:
-                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
-                total_hours += duration
-            if profit > best_session:
-                best_session = profit
-            if profit < worst_session:
-                worst_session = profit
-            total_profit += profit
-        if total_sessions == 0:
-            best_session = 0.0
-            worst_session = 0.0
-        # Poker P/L chart (cumulative profit over time)
-        sessions_chrono = list(reversed(sessions))
-        chart_points = []
-        cumulative = 0
-        hours = 0
-        for s in sessions_chrono:
-            profit = (s.money_out or 0) - (s.money_in or 0)
-            if tips_included:
-                profit += (s.tips or 0)
-            cumulative += profit
-            if s.time_in and s.time_out:
-                duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
-                hours += duration
-            chart_points.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
-        if not chart_points or chart_points[0]['x'] != 0:
-            chart_points = [{'x': 0, 'y': 0}] + chart_points
-        # Poker Bankroll chart (from ledger and sessions)
-        ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Poker').order_by(LedgerRecord.date).all()
-        combined = []
-        for s in sessions_chrono:
-            profit = (s.money_out or 0) - (s.money_in or 0)
-            if tips_included:
-                profit += (s.tips or 0)
-            combined.append({'date': s.date, 'change': profit})
-        for l in ledger_rows:
-            combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
-        combined.sort(key=lambda x: x['date'])
-        bankroll_points = []
-        bankroll = 0
-        for item in combined:
-            bankroll += item['change']
-            bankroll_points.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
-        poker_stats = {
-            'total_sessions': total_sessions,
-            'total_hours': total_hours,
-            'total_profit': total_profit,
-            'best_session': best_session,
-            'worst_session': worst_session
-        }
-        return render_template('dashboard_poker.html', records=records, poker_stats=poker_stats, poker_chart=chart_points, poker_bankroll=bankroll_points, tips_included=tips_included)
-
-    tips_included = request.args.get('tips_included', '0') == '1'
 
     # === Chart 1: Cumulative Profit (PnL vs Time) ===
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).order_by(SessionRecord.date, SessionRecord.time_in).all()
@@ -306,7 +106,15 @@ def dashboard():
     if not chart_points or chart_points[0]["x"] != 0:
         chart_points = [{"x": 0, "y": 0}] + chart_points
 
-    unique_types = sorted(set(s.type for s in sessions if s.type))
+    # Get unique types from sessions
+    session_types = sorted(set(s.type for s in sessions if s.type))
+    
+    # Get user's added ventures
+    user_ventures = UserVenture.query.filter_by(user_id=current_user.id).all()
+    user_venture_types = [uv.venture_type for uv in user_ventures]
+    
+    # Combine session types and user ventures, removing duplicates
+    unique_types = sorted(set(session_types + user_venture_types))
 
     # === Chart 2: Total Bankroll by Date (from LedSess) ===
     ledsess_entries = LedSessRecord.query.filter_by(user_id=current_user.id).order_by(LedSessRecord.date, LedSessRecord.id).all()
@@ -566,9 +374,15 @@ def file_upload():
 @app.route('/clear_logs', methods=['POST'])
 @login_required
 def clear_logs():
-    SessionRecord.query.filter_by(user_id=current_user.id).delete()
-    db.session.commit()
-    return redirect(url_for('view_logs'))
+    log_type = request.form.get('type') or request.args.get('type')
+    if log_type:
+        SessionRecord.query.filter_by(user_id=current_user.id, type=log_type).delete()
+        db.session.commit()
+        return redirect(url_for('view_logs', type=log_type))
+    else:
+        SessionRecord.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+        return redirect(url_for('view_logs'))
 
 
 
@@ -1792,14 +1606,19 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
-    from logs import Feedback, SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord, LocationRecord, LedSessRecord, LocationNote, BlackjackSession, BlackjackSpread, BlackjackGameRule
+    from logs import SessionRecord, BankRecord, LedgerRecord, CompRecord, GiftRecord, LocationRecord, LedSessRecord, LocationNote, BlackjackSession, BlackjackSpread, BlackjackGameRule, DonationRecord
     from users import User
     from sqlalchemy import func, desc
     import os
     import psutil
     
-    # Get all feedback
-    feedback_list = db.session.query(Feedback, User).join(User).order_by(desc(Feedback.created_at)).all()
+    # Get all feedback with user information
+    from logs import Feedback
+    feedback_with_users = []
+    for feedback in Feedback.query.order_by(Feedback.created_at.desc()).all():
+        user = User.query.get(feedback.user_id)
+        feedback_with_users.append((feedback, user))
+    feedback_list = feedback_with_users
     
     # Get user statistics with storage and CPU usage
     users = User.query.all()
@@ -1841,6 +1660,9 @@ def admin_dashboard():
         for session in sessions:
             profit = (session.money_out or 0) - (session.money_in or 0)
             total_profit += profit
+        
+        # Get active ventures for this user
+        active_ventures = sorted(set(session.type for session in sessions if session.type))
         
         # Calculate storage usage for this user
         storage_usage = 0
@@ -1895,6 +1717,7 @@ def admin_dashboard():
             'donation_amount': donation_amount,
             'storage_usage': storage_usage,
             'storage_usage_mb': round(storage_usage / (1024 * 1024), 3),
+            'active_ventures': active_ventures,
             'record_counts': {
                 'sessions': session_records,
                 'banks': bank_records,
@@ -1916,6 +1739,21 @@ def admin_dashboard():
     total_feedback = Feedback.query.count()
     total_sessions = SessionRecord.query.count()
     
+    # Calculate venture statistics
+    try:
+        venture_stats = {
+            'blackjack_users': sum(1 for user in user_stats if 'Blackjack' in user['active_ventures']),
+            'poker_users': sum(1 for user in user_stats if 'Poker' in user['active_ventures']),
+            'matchplay_users': sum(1 for user in user_stats if 'Match Play' in user['active_ventures'])
+        }
+    except Exception as e:
+        print(f"Error calculating venture stats: {e}")
+        venture_stats = {
+            'blackjack_users': 0,
+            'poker_users': 0,
+            'matchplay_users': 0
+        }
+    
     # Calculate total storage usage
     total_storage = sum(user['storage_usage'] for user in user_stats)
     total_storage_mb = round(total_storage / (1024 * 1024), 3)
@@ -1923,6 +1761,7 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', 
                          feedback_list=feedback_list,
                          user_stats=user_stats,
+                         venture_stats=venture_stats,
                          total_users=total_users,
                          total_feedback=total_feedback,
                          total_sessions=total_sessions,
@@ -1960,6 +1799,7 @@ def admin_delete_user(user_id):
     BlackjackSession.query.filter_by(user_id=user_id).delete()
     BlackjackSpread.query.filter_by(user_id=user_id).delete()
     BlackjackGameRule.query.filter_by(user_id=user_id).delete()
+    from logs import Feedback
     Feedback.query.filter_by(user_id=user_id).delete()
     # Finally, delete the user
     user = User.query.get(user_id)
@@ -1995,6 +1835,55 @@ def submit_feedback():
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error submitting feedback: {str(e)}'}), 500
+
+@app.route('/api/user_ventures', methods=['GET'])
+@login_required
+def get_user_ventures():
+    """Get all ventures for the current user"""
+    ventures = UserVenture.query.filter_by(user_id=current_user.id).all()
+    return jsonify([venture.venture_type for venture in ventures])
+
+@app.route('/api/user_ventures', methods=['POST'])
+@login_required
+def add_user_venture():
+    """Add a new venture for the current user"""
+    data = request.get_json()
+    venture_type = data.get('venture_type')
+    
+    if not venture_type:
+        return jsonify({'success': False, 'error': 'Venture type is required'}), 400
+    
+    # Check if venture already exists
+    existing = UserVenture.query.filter_by(user_id=current_user.id, venture_type=venture_type).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Venture already exists'}), 400
+    
+    # Add new venture
+    new_venture = UserVenture(user_id=current_user.id, venture_type=venture_type)
+    db.session.add(new_venture)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'venture_type': venture_type})
+
+@app.route('/api/user_ventures/<venture_type>', methods=['DELETE'])
+@login_required
+def delete_user_venture(venture_type):
+    """Delete a venture for the current user"""
+    venture = UserVenture.query.filter_by(user_id=current_user.id, venture_type=venture_type).first()
+    
+    if not venture:
+        return jsonify({'success': False, 'error': 'Venture not found'}), 404
+    
+    db.session.delete(venture)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/roadmap')
+def roadmap():
+    return render_template('roadmap.html')
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5555, debug=False)
