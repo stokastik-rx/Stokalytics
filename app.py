@@ -43,6 +43,42 @@ app.jinja_env.globals['getattr'] = getattr  # useful for dynamic rendering
 db.init_app(app)
 migrate = Migrate(app, db)
 
+# --- Database Schema Check and Fix ---
+def ensure_database_schema():
+    """Ensure all required tables exist in the database"""
+    with app.app_context():
+        try:
+            # Check if UserVenture table exists
+            from logs import UserVenture
+            db.create_all()  # This will create any missing tables
+            
+            # Verify critical tables exist
+            inspector = db.inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+            
+            required_tables = [
+                'user', 'session_record', 'bank_record', 'ledger_record', 
+                'comp_record', 'gift_record', 'location_record', 'ledsess_record',
+                'location_note', 'blackjack_spread', 'blackjack_game_rule',
+                'blackjack_session', 'donation_record', 'user_venture', 'feedback'
+            ]
+            
+            missing_tables = [table for table in required_tables if table not in existing_tables]
+            
+            if missing_tables:
+                print(f"⚠️  Missing tables detected: {missing_tables}")
+                print("🔧 Creating missing tables...")
+                db.create_all()
+                print("✅ Database schema updated")
+            else:
+                print("✅ Database schema is up to date")
+                
+        except Exception as e:
+            print(f"❌ Error checking database schema: {e}")
+
+# Run schema check on startup
+ensure_database_schema()
+
 app.secret_key = 'your_super_secret_key_here'
 
 
