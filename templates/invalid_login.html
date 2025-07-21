@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container" style="max-width: 400px; margin: 60px auto; text-align: center;">
+    <h2 style="color: #c0392b;">Invalid Login</h2>
+    <p style="margin: 20px 0;">The username or password you entered is incorrect.</p>
+    <a href="{{ url_for('login') }}" class="btn btn-primary">Try Again</a>
+</div>
+{% endblock %} 

@@ -295,7 +295,7 @@ def login():
             db.session.commit()
             login_user(user)
             return redirect(url_for('dashboard'))
-        return "Invalid credentials"
+        return render_template('invalid_login.html')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -1921,6 +1921,102 @@ def roadmap():
 
 
 
+@app.route('/update_ledger_bulk', methods=['POST'])
+@login_required
+def update_ledger_bulk():
+    # Get all ledger IDs from the form
+    ledger_ids = [key.split('_')[1] for key in request.form if key.startswith('id_')]
+    any_changes = False
+    for ledger_id in ledger_ids:
+        entry = LedgerRecord.query.get(int(ledger_id))
+        if not entry or entry.user_id != current_user.id:
+            continue
+        entry_changed = False
+        for field in ['date', 'account', 'venture', 'amount', 'type']:
+            val = request.form.get(f'{field}_{ledger_id}')
+            if val is not None:
+                if field == 'date':
+                    try:
+                        new_val = pd.to_datetime(val).date() if val else None
+                        if entry.date != new_val:
+                            entry.date = new_val
+                            entry_changed = True
+                    except Exception:
+                        continue
+                elif field == 'amount':
+                    try:
+                        new_val = float(val) if val else 0
+                        if request.form.get(f'type_{ledger_id}') == 'deposit':
+                            if entry.deposit != new_val or entry.withdrawal != 0:
+                                entry.deposit = new_val
+                                entry.withdrawal = 0
+                                entry_changed = True
+                        else:
+                            if entry.withdrawal != new_val or entry.deposit != 0:
+                                entry.withdrawal = new_val
+                                entry.deposit = 0
+                                entry_changed = True
+                    except Exception:
+                        continue
+                elif field == 'type':
+                    # Already handled in amount
+                    continue
+                else:
+                    if getattr(entry, field) != val:
+                        setattr(entry, field, val)
+                        entry_changed = True
+        if entry_changed:
+            any_changes = True
+    if any_changes:
+        db.session.commit()
+        sync_ledsess()
+    return redirect(url_for('view_banking'))
+
+@app.route('/delete_ledger/<int:ledger_id>', methods=['POST'])
+@login_required
+def delete_ledger(ledger_id):
+    entry = LedgerRecord.query.get(ledger_id)
+    if not entry or entry.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Not found'}), 404
+    db.session.delete(entry)
+    db.session.commit()
+    sync_ledsess()
+    return jsonify({'success': True})
+
+@app.route('/api/update_bank_color/<int:bank_id>', methods=['POST'])
+@login_required
+def update_bank_color(bank_id):
+    from logs import BankRecord
+    color = request.form.get('color')
+    if not color or not color.startswith('#') or len(color) != 7:
+        return jsonify({'success': False, 'error': 'Invalid color'}), 400
+    bank = BankRecord.query.get(bank_id)
+    if not bank or bank.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Not found'}), 404
+    bank.color = color
+    db.session.commit()
+    return jsonify({'success': True, 'color': color})
+
+@app.route('/api/update_bank_attributes/<int:bank_id>', methods=['POST'])
+@login_required
+def update_bank_attributes(bank_id):
+    from logs import BankRecord
+    bank = BankRecord.query.get(bank_id)
+    if not bank or bank.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Not found'}), 404
+    is_funding = request.form.get('is_funding') == 'true'
+    is_vault = request.form.get('is_vault') == 'true'
+    # Only one vault per user
+    if is_vault:
+        for b in BankRecord.query.filter_by(user_id=current_user.id).all():
+            if b.id != bank.id and b.is_vault:
+                b.is_vault = False
+    bank.is_funding = is_funding
+    bank.is_vault = is_vault
+    db.session.commit()
+    return jsonify({'success': True, 'is_funding': bank.is_funding, 'is_vault': bank.is_vault})
+
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5555, debug=False)
-

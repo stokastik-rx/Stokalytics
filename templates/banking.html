@@ -6,7 +6,7 @@
 
   <div class="button-row">
     <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
-    <button class="btn" onclick="toggleBankForm()">New Bank</button>
+    <button class="btn" id="openBankModalBtn">Add Bank</button>
     <button class="btn btn-outline-green" onclick="toggleDepositForm()">Deposit</button>
     <button class="btn btn-outline-red" onclick="toggleWithdrawalForm()">Withdrawal</button>
   </div>
@@ -67,24 +67,13 @@
   <div style="display: flex; margin-top: 2rem; gap: 2rem; align-items: flex-start;">
     <!-- Sidebar -->
     <div style="width: 250px; display: flex; flex-direction: column; gap: 2rem;">
-      <div class="sidebar" style="background-color: #111; padding: 1rem; border-radius: 10px;">
-        <h3 style="color: #ffffff; font-family: Consolas, monospace;">Banks</h3>
-        <ul style="list-style: none; padding-left: 0;">
-          {% for bank in banks %}
-            <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;">
-              <span>{{ bank.name }}</span>
-              <form method="POST" action="{{ url_for('delete_bank', bank_id=bank.id) }}" style="margin: 0;">
-                <button type="submit" style="background: none; border: none; color: #f55; cursor: pointer;">✕</button>
-              </form>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
+      <!-- Remove Banks sidebar section entirely -->
+      <!-- <div class="sidebar" ...> ... </div> -->
 
       <div class="sidebar" style="background-color: #111; padding: 1rem; border-radius: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <h3 style="color: #ffffff; font-family: Consolas, monospace;">Ledger</h3>
-          <button class="btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="toggleLedgerEdit()">Edit</button>
+          <button type="button" class="btn" id="openLedgerEditModalBtn" style="padding: 2px 8px; font-size: 0.8rem;">Edit</button>
         </div>
         <ul style="list-style: none; padding: 0; margin: 0;">
           {% for entry in ledger %}
@@ -96,26 +85,10 @@
                 </span>
                 <span style="flex: 1; text-align: right;">{{ entry.venture }}</span>
               </div>
-              <div style="display: flex; justify-content: space-between;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span>{{ entry.date }}</span>
                 <span>${{ ((entry.withdrawal or 0) - (entry.deposit or 0)) | abs | round(2) }}</span>
               </div>
-            </li>
-            <li class="ledger-edit" id="edit-{{ entry.id }}" style="display: none; padding: 0.5rem 0; border-bottom: 1px solid #333;">
-              <form method="POST" action="{{ url_for('edit_ledger_entry', ledger_id=entry.id) }}" style="display: flex; flex-direction: column; gap: 0.25rem;">
-                <input type="date" name="date" value="{{ entry.date }}" required>
-                <input type="text" name="account" value="{{ entry.account }}" required placeholder="Account">
-                <input type="text" name="venture" value="{{ entry.venture }}" required placeholder="Venture">
-                <input type="number" step="0.01" name="amount" value="{{ entry.deposit or entry.withdrawal }}" required>
-                <select name="type" required>
-                  <option value="deposit" {% if entry.deposit > 0 %}selected{% endif %}>Deposit</option>
-                  <option value="withdrawal" {% if entry.withdrawal > 0 %}selected{% endif %}>Withdrawal</option>
-                </select>
-                <button type="submit" class="btn btn-outline-green">Save</button>
-              </form>
-              <form method="POST" action="{{ url_for('update_ledger', ledger_id=entry.id) }}" style="margin-top: 0.25rem;">
-                <button type="submit" class="btn btn-outline-red" style="width: 100%;" onclick="return confirm('Delete this entry?')">Delete</button>
-              </form>
             </li>
           {% endfor %}
         </ul>
@@ -186,6 +159,72 @@
 
   </div>
 </div>
+
+<!-- Ledger Edit Modal -->
+<div id="ledgerEditModal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 800px;">
+    <h2>Edit Ledger Entries</h2>
+    <form id="ledgerBulkEditForm" method="POST" action="{{ url_for('update_ledger_bulk') }}">
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 40px;"></th>
+              <th style="width: 100px;">Date</th>
+              <th style="width: 160px;">Account</th>
+              <th style="width: 120px;">Venture</th>
+              <th style="width: 130px;">Amount</th>
+              <th style="width: 130px;">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in ledger %}
+            <tr data-ledger-id="{{ entry.id }}">
+              <td class="trash-cell">
+                <button type="button" class="btn btn-outline-red trash-btn" title="Delete this row">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-2 14H7L5 6"></path>
+                    <path d="M10 6V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"></path>
+                  </svg>
+                </button>
+              </td>
+              <input type="hidden" name="id_{{ entry.id }}" value="{{ entry.id }}">
+              <td><input type="date" name="date_{{ entry.id }}" value="{{ entry.date.strftime('%Y-%m-%d') if entry.date else '' }}" class="modal-input"></td>
+              <td>
+                <select name="account_{{ entry.id }}" class="modal-input styled-select" style="min-width: 150px;">
+                  {% for bank in banks %}
+                    <option value="{{ bank.name }}" {% if entry.account == bank.name %}selected{% endif %}>{{ bank.name }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <select name="venture_{{ entry.id }}" class="modal-input styled-select">
+                  {% for venture in unique_types %}
+                    <option value="{{ venture }}" {% if entry.venture == venture %}selected{% endif %}>{{ venture }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td><input type="number" step="0.01" name="amount_{{ entry.id }}" value="{{ '%.2f'|format(entry.deposit if entry.deposit > 0 else entry.withdrawal) }}" class="modal-input"></td>
+              <td>
+                <select name="type_{{ entry.id }}" class="modal-input styled-select" style="min-width: 120px;">
+                  <option value="deposit" {% if entry.deposit > 0 %}selected{% endif %}>Deposit</option>
+                  <option value="withdrawal" {% if entry.withdrawal > 0 %}selected{% endif %}>Withdrawal</option>
+                </select>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="cancelLedgerEditBtn" class="btn btn-outline-red">Cancel</button>
+        <button type="submit" class="btn btn-outline-green">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 
 
 
@@ -312,65 +351,469 @@
   });
 </script>
 
+<!-- Only one <script> block for modal logic should remain at the end of the file. -->
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const pieCanvas = document.getElementById("bankrollPieChart");
-    if (pieCanvas && window.pieData) {
-      new Chart(pieCanvas.getContext("2d"), {
-        type: 'pie',
-        data: {
-          labels: window.pieData.labels,
-          datasets: [{
-            data: window.pieData.values,
-            backgroundColor: [
-              '#00ff99',
-              '#66ccff',
-              '#ff66cc',
-              '#ffaa00',
-              '#9999ff',
-              '#ff4444'
-            ],
-            borderColor: '#0a0a0a',
-            borderWidth: 2,
-            hoverOffset: 6
-          }]
-        },
-        options: {
-           maintainAspectRatio: false,
-          layout: {
-            padding: 0
-          },
-         plugins: {
-         legend: {
-         position: 'bottom',
-         labels: {
-         color: '#ccc',
-        font: {
-          family: "'JetBrains Mono', monospace",
-          size: 10
-        },
-        boxWidth: 10,
-        padding: 6
-          }
-          },
-         tooltip: {
-      backgroundColor: '#111',
-      titleColor: '#00ff99',
-      bodyColor: '#fff',
-      borderColor: '#333',
-      borderWidth: 1
-          }
-         }
-        }
+  document.addEventListener('DOMContentLoaded', function() {
+    const ledgerEditModal = document.getElementById('ledgerEditModal');
+    const openLedgerEditModalBtn = document.getElementById('openLedgerEditModalBtn');
+    const cancelLedgerEditBtn = document.getElementById('cancelLedgerEditBtn');
 
+    if (openLedgerEditModalBtn) {
+      openLedgerEditModalBtn.addEventListener('click', function() {
+        ledgerEditModal.style.display = 'flex';
       });
     }
+    if (cancelLedgerEditBtn) {
+      cancelLedgerEditBtn.addEventListener('click', function() {
+        ledgerEditModal.style.display = 'none';
+      });
+    }
+    if (ledgerEditModal) {
+      ledgerEditModal.addEventListener('click', function(e) {
+        if (e.target === ledgerEditModal) ledgerEditModal.style.display = 'none';
+      });
+    }
+
+    // Trash button logic for ledger modal
+    document.querySelectorAll('#ledgerEditModal .trash-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const row = btn.closest('tr');
+        const ledgerId = row.getAttribute('data-ledger-id');
+        fetch(`/delete_ledger/${ledgerId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }).then(response => {
+          if (response.ok) {
+            row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(-20px)';
+            setTimeout(() => row.remove(), 300);
+          } else {
+            alert('Error deleting ledger entry');
+          }
+        });
+      });
+    });
   });
 </script>
 
+<!-- Manage Banks Modal (styled like Manage Ventures, compact) -->
+<div id="bankModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 500px; width: 90%;">
+    <!-- Modal header with inline Edit button -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+      <h3 style="color: #fff; text-align: left; font-size: 1.15rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; margin: 0;">Manage Banks</h3>
+      <button id="editBanksModeBtn" class="btn btn-outline" style="font-size: 0.92em; padding: 0.2rem 0.8rem; border: 1px solid #444; color: #fff; margin-left: 1.2rem;">Edit</button>
+    </div>
+    <div id="bank-management-list" style="max-height: 180px; overflow-y: auto; margin-bottom: 1.2rem;">
+      {% for bank in banks %}
+        <div class="venture-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.75rem; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 0.5rem; position: relative;">
+          <div class="venture-info" style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="venture-color bank-color-dot" data-bank-id="{{ bank.id }}" style="width: 11px; height: 11px; border-radius: 50%; background: {{ bank.color or '#66ccff' }}; cursor: pointer; border: 2px solid #222;"></div>
+            <span class="venture-name" style="color: #fff; font-weight: 600; font-size: 0.98rem;">{{ bank.name }}</span>
+            {% if bank.is_vault and banks|length > 1 %}<span class="badge" style="background:#222; color:#00ffff; border-radius:4px; font-size:0.8em; padding:2px 7px; margin-left:6px;">Vault</span>{% endif %}
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.7rem;">
+            {% if banks|length > 1 and not bank.is_vault %}
+              <button class="set-vault-btn btn btn-outline-green" data-bank-id="{{ bank.id }}" style="font-size: 0.82rem; padding: 0.12rem 0.5rem; margin-right: 0.3rem; border-radius: 4px; line-height: 1.1; display: none;">Set as Vault</button>
+            {% endif %}
+            <button class="delete-venture-btn delete-bank-btn" data-bank-id="{{ bank.id }}" style="background: #ff4444; color: white; border: none; padding: 0.12rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; transition: background 0.2s; line-height: 1.1; display: none;">Delete</button>
+          </div>
+        </div>
+      {% endfor %}
+      {% if banks|length == 0 %}
+        <div class="no-ventures" style="color: #666; font-style: italic; text-align: center; padding: 0.7rem; font-size: 0.95rem;">No banks added yet</div>
+      {% endif %}
+    </div>
+    <form id="addBankForm" style="display: flex; gap: 0.4rem; justify-content: flex-end; margin-bottom: 1rem;">
+      <input type="text" id="newBankName" class="styled-input" placeholder="Bank Name" required style="flex: 1; font-size: 0.98rem; padding: 0.35rem 0.7rem;">
+      <button type="submit" class="btn btn-outline-green" style="font-size: 0.98rem; padding: 0.35rem 1.1rem;">Add</button>
+    </form>
+    <div style="color: #666; font-size: 0.93rem; margin-bottom: 1rem;">Remove banks you no longer need. This won't delete your ledger data.</div>
+    <!-- Modal footer -->
+    <div style="display: flex; justify-content: flex-end; gap: 1.2rem; margin-top: 1.5rem;">
+      <button id="cancelBankModalBtn" class="btn">Cancel</button>
+      <button id="saveBankModalBtn" class="btn btn-outline-green" style="min-width: 100px; display: none;">Save</button>
+    </div>
+  </div>
+</div>
 
 
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Bank Modal logic
+  const bankModal = document.getElementById('bankModal');
+  const openBankModalBtn = document.getElementById('openBankModalBtn');
+  const closeBankModalBtn = document.getElementById('closeBankModalBtn');
+  if (openBankModalBtn) {
+    openBankModalBtn.addEventListener('click', function() {
+      bankModal.style.display = 'flex';
+    });
+  }
+  if (closeBankModalBtn) {
+    closeBankModalBtn.addEventListener('click', function() {
+      bankModal.style.display = 'none';
+    });
+  }
+  if (bankModal) {
+    bankModal.addEventListener('click', function(e) {
+      if (e.target === bankModal) bankModal.style.display = 'none';
+    });
+  }
+  // Add bank
+  const addBankForm = document.getElementById('addBankForm');
+  if (addBankForm) {
+    addBankForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('newBankName').value.trim();
+      if (!name) return;
+      const formData = new FormData();
+      formData.append('bank_name', name);
+      const resp = await fetch('{{ url_for('add_bank') }}', { method: 'POST', body: formData });
+      document.getElementById('newBankName').value = '';
+      // Add the new bank to the list live
+      if (resp.ok) {
+        // Remove empty message if present
+        const empty = document.querySelector('.no-ventures');
+        if (empty) empty.remove();
+        // Create new bank item
+        const list = document.getElementById('bank-management-list');
+        const div = document.createElement('div');
+        div.className = 'venture-item';
+        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0.75rem; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 0.5rem; position: relative;';
+        div.innerHTML = `<div class='venture-info' style='display: flex; align-items: center; gap: 0.5rem;'><div class='venture-color' style='width: 11px; height: 11px; border-radius: 50%; background: #66ccff;'></div><span class='venture-name' style='color: #fff; font-weight: 600; font-size: 0.98rem;'>${name}</span></div><div style='display: flex; align-items: center; gap: 0.7rem;'><button class='set-vault-btn btn btn-outline-green' data-bank-id='${div.dataset.bankId}' style='font-size: 0.82rem; padding: 0.12rem 0.5rem; margin-right: 0.3rem; border-radius: 4px; line-height: 1.1; display: none;'>Set as Vault</button><button class='delete-venture-btn delete-bank-btn' style='background: #ff4444; color: white; border: none; padding: 0.12rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.82rem; font-family: JetBrains Mono, monospace; font-weight: bold; transition: background 0.2s; line-height: 1.1; display: none;' data-bank-id='${div.dataset.bankId}'>Delete</button></div>`;
+        list.appendChild(div);
+        // Fetch the new bank's ID by reloading the list (or you can do a smarter fetch if needed)
+        // For now, just re-attach delete logic to all delete buttons
+        document.querySelectorAll('.delete-bank-btn').forEach(btn => {
+          btn.onclick = async function() {
+            const bankId = btn.getAttribute('data-bank-id');
+            await fetch(`/delete_bank/${bankId}`, { method: 'POST' });
+            const item = btn.closest('.venture-item');
+            if (item) item.remove();
+            if (document.querySelectorAll('.venture-item').length === 0) {
+              const list = document.getElementById('bank-management-list');
+              if (list && !document.querySelector('.no-ventures')) {
+                const empty = document.createElement('div');
+                empty.className = 'no-ventures';
+                empty.style.cssText = 'color: #666; font-style: italic; text-align: center; padding: 0.7rem; font-size: 0.95rem;';
+                empty.textContent = 'No banks added yet';
+                list.appendChild(empty);
+              }
+            }
+          };
+        });
+      }
+    });
+  }
+  // Delete bank
+  document.querySelectorAll('.delete-bank-btn').forEach(btn => {
+    btn.onclick = async function() {
+      const bankId = btn.getAttribute('data-bank-id');
+      // No confirmation dialog
+      await fetch(`/delete_bank/${bankId}`, { method: 'POST' });
+      // Remove the bank item from the DOM
+      const item = btn.closest('.venture-item');
+      if (item) item.remove();
+      // If no banks left, show empty message
+      if (document.querySelectorAll('.venture-item').length === 0) {
+        const list = document.getElementById('bank-management-list');
+        if (list && !document.querySelector('.no-ventures')) {
+          const empty = document.createElement('div');
+          empty.className = 'no-ventures';
+          empty.style.cssText = 'color: #666; font-style: italic; text-align: center; padding: 0.7rem; font-size: 0.95rem;';
+          empty.textContent = 'No banks added yet';
+          list.appendChild(empty);
+        }
+      }
+    };
+  });
+  // Color picker logic for banks (custom popover)
+  let openColorPopover = null;
+  document.querySelectorAll('.bank-color-dot').forEach(dot => {
+    dot.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Close any open popover
+      if (openColorPopover) openColorPopover.remove();
+      // Create popover
+      const popover = document.createElement('div');
+      popover.style.position = 'absolute';
+      popover.style.zIndex = 10000;
+      popover.style.background = '#222';
+      popover.style.border = '1px solid #444';
+      popover.style.borderRadius = '8px';
+      popover.style.padding = '0.7rem 1rem 0.7rem 1rem';
+      popover.style.boxShadow = '0 2px 12px #000a';
+      popover.style.display = 'flex';
+      popover.style.flexDirection = 'column';
+      popover.style.alignItems = 'center';
+      popover.style.gap = '0.7rem';
+      // Color input
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = rgb2hex(getComputedStyle(dot).backgroundColor) || '#66ccff';
+      input.style.width = '2.2rem';
+      input.style.height = '2.2rem';
+      input.style.border = 'none';
+      input.style.background = 'none';
+      input.style.cursor = 'pointer';
+      // Save button
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = 'Save';
+      saveBtn.className = 'btn btn-outline-green';
+      saveBtn.style.marginTop = '0.2rem';
+      saveBtn.style.fontSize = '0.95rem';
+      // Cancel button
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.className = 'btn';
+      cancelBtn.style.marginTop = '0.2rem';
+      cancelBtn.style.fontSize = '0.95rem';
+      // Layout
+      popover.appendChild(input);
+      const btnRow = document.createElement('div');
+      btnRow.style.display = 'flex';
+      btnRow.style.gap = '0.7rem';
+      btnRow.appendChild(cancelBtn);
+      btnRow.appendChild(saveBtn);
+      popover.appendChild(btnRow);
+      // Position popover below dot
+      document.body.appendChild(popover);
+      const rect = dot.getBoundingClientRect();
+      popover.style.left = (window.scrollX + rect.left - popover.offsetWidth/2 + dot.offsetWidth/2) + 'px';
+      popover.style.top = (window.scrollY + rect.bottom + 8) + 'px';
+      openColorPopover = popover;
+      // Save logic
+      saveBtn.onclick = function() {
+        const color = input.value;
+        const bankId = dot.getAttribute('data-bank-id');
+        fetch(`/api/update_bank_color/${bankId}`, {
+          method: 'POST',
+          body: new URLSearchParams({ color }),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }).then(resp => resp.json()).then(data => {
+          if (data.success) {
+            dot.style.background = color;
+          }
+          popover.remove();
+          openColorPopover = null;
+        });
+      };
+      // Cancel logic
+      cancelBtn.onclick = function() {
+        popover.remove();
+        openColorPopover = null;
+      };
+      // Close on outside click
+      setTimeout(() => {
+        document.addEventListener('mousedown', outsideClick, { once: true });
+      }, 0);
+      function outsideClick(ev) {
+        if (!popover.contains(ev.target)) {
+          popover.remove();
+          openColorPopover = null;
+        }
+      }
+    });
+  });
+  // Set as Vault button logic
+  document.querySelectorAll('.set-vault-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const bankId = btn.getAttribute('data-bank-id');
+      fetch(`/api/update_bank_attributes/${bankId}`, {
+        method: 'POST',
+        body: new URLSearchParams({ is_vault: true }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      }).then(resp => resp.json()).then(data => {
+        if (data.success) {
+          // Remove all Vault badges
+          document.querySelectorAll('.venture-info .badge').forEach(b => {
+            if (b.textContent.trim() === 'Vault') b.remove();
+          });
+          // Hide all Set as Vault buttons
+          document.querySelectorAll('.set-vault-btn').forEach(b => b.style.display = '');
+          // Add badge to this item
+          const item = btn.closest('.venture-item');
+          const info = item.querySelector('.venture-info');
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.style.cssText = 'background:#222; color:#00ffff; border-radius:4px; font-size:0.8em; padding:2px 7px; margin-left:6px;';
+          badge.textContent = 'Vault';
+          info.appendChild(badge);
+          // Hide this button
+          btn.style.display = 'none';
+        }
+      });
+    });
+  });
+  // If only one bank, disable and uncheck Vault radio
+  // This logic is no longer needed as there's no radio input for vault selection.
+  // The Set as Vault button handles the vault selection.
+  // if (document.querySelectorAll('.vault-radio').length === 1) {
+  //   const radio = document.querySelector('.vault-radio');
+  //   radio.checked = false;
+  //   radio.disabled = true;
+  // }
+  // Set Vault mode button logic
+  const setVaultModeBtn = document.getElementById('setVaultModeBtn');
+  if (setVaultModeBtn) {
+    setVaultModeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Highlight all Set as Vault buttons
+      document.querySelectorAll('.set-vault-btn').forEach(btn => {
+        btn.style.boxShadow = '0 0 0 2px #00ffff, 0 0 8px #00ffff55';
+        btn.style.opacity = '1';
+      });
+      // Remove highlight after a selection or after 5 seconds
+      const clearHighlight = () => {
+        document.querySelectorAll('.set-vault-btn').forEach(btn => {
+          btn.style.boxShadow = '';
+          btn.style.opacity = '';
+        });
+      };
+      document.querySelectorAll('.set-vault-btn').forEach(btn => {
+        btn.addEventListener('click', clearHighlight, { once: true });
+      });
+      setTimeout(clearHighlight, 5000);
+    });
+  }
+  // Edit mode logic
+  const editBanksModeBtn = document.getElementById('editBanksModeBtn');
+  const saveBankModalBtn = document.getElementById('saveBankModalBtn');
+  const cancelBankModalBtn = document.getElementById('cancelBankModalBtn');
+  let editMode = false;
+  let intendedVaultId = null;
+  let banksToDelete = new Set();
+  // Store original state for cancel
+  let originalVaultId = null;
+  function enterEditMode() {
+    editMode = true;
+    // Show buttons
+    document.querySelectorAll('.set-vault-btn, .delete-bank-btn').forEach(btn => btn.style.display = '');
+    saveBankModalBtn.style.display = '';
+    editBanksModeBtn.textContent = 'Done';
+    // Store original vault
+    const currentVault = document.querySelector('.set-vault-btn[style*="display: none"]')?.closest('.venture-item')?.querySelector('.badge');
+    originalVaultId = null;
+    document.querySelectorAll('.venture-item').forEach(item => {
+      if (item.querySelector('.badge') && item.querySelector('.badge').textContent.trim() === 'Vault') {
+        originalVaultId = item.querySelector('.set-vault-btn')?.getAttribute('data-bank-id');
+      }
+    });
+    intendedVaultId = originalVaultId;
+    banksToDelete.clear();
+  }
+  function exitEditMode() {
+    editMode = false;
+    document.querySelectorAll('.set-vault-btn, .delete-bank-btn').forEach(btn => btn.style.display = 'none');
+    saveBankModalBtn.style.display = 'none';
+    editBanksModeBtn.textContent = 'Edit';
+    // Revert UI to original state
+    document.querySelectorAll('.venture-info .badge').forEach(b => {
+      if (b.textContent.trim() === 'Vault') b.remove();
+    });
+    if (originalVaultId) {
+      const btn = document.querySelector(`.set-vault-btn[data-bank-id='${originalVaultId}']`);
+      if (btn) {
+        const info = btn.closest('.venture-item').querySelector('.venture-info');
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.style.cssText = 'background:#222; color:#00ffff; border-radius:4px; font-size:0.8em; padding:2px 7px; margin-left:6px;';
+        badge.textContent = 'Vault';
+        info.appendChild(badge);
+      }
+    }
+    // Unmark any banks visually for deletion
+    document.querySelectorAll('.venture-item').forEach(item => {
+      item.style.opacity = '';
+    });
+  }
+  if (editBanksModeBtn) {
+    editBanksModeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (!editMode) {
+        enterEditMode();
+      } else {
+        exitEditMode();
+      }
+    });
+  }
+  // Set as Vault button logic (edit mode only)
+  document.querySelectorAll('.set-vault-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (!editMode) return;
+      // Remove all Vault badges
+      document.querySelectorAll('.venture-info .badge').forEach(b => {
+        if (b.textContent.trim() === 'Vault') b.remove();
+      });
+      // Add badge to this item
+      const item = btn.closest('.venture-item');
+      const info = item.querySelector('.venture-info');
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.style.cssText = 'background:#222; color:#00ffff; border-radius:4px; font-size:0.8em; padding:2px 7px; margin-left:6px;';
+      badge.textContent = 'Vault';
+      info.appendChild(badge);
+      intendedVaultId = btn.getAttribute('data-bank-id');
+    });
+  });
+  // Delete button logic (edit mode only)
+  document.querySelectorAll('.delete-bank-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (!editMode) return;
+      const item = btn.closest('.venture-item');
+      const bankId = btn.getAttribute('data-bank-id');
+      if (banksToDelete.has(bankId)) {
+        banksToDelete.delete(bankId);
+        item.style.opacity = '';
+      } else {
+        banksToDelete.add(bankId);
+        item.style.opacity = '0.4';
+      }
+    });
+  });
+  // Save button logic
+  saveBankModalBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    // Save vault change
+    if (intendedVaultId && intendedVaultId !== originalVaultId) {
+      fetch(`/api/update_bank_attributes/${intendedVaultId}`, {
+        method: 'POST',
+        body: new URLSearchParams({ is_vault: true }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      }).then(resp => resp.json()).then(data => {
+        // Optionally handle response
+      });
+    }
+    // Save deletions
+    banksToDelete.forEach(bankId => {
+      fetch(`/delete_bank/${bankId}`, {
+        method: 'POST'
+      }).then(resp => {
+        // Optionally handle response
+      });
+    });
+    // After saving, reload the page or update the UI as needed
+    location.reload();
+  });
+  // Cancel button logic
+  cancelBankModalBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    exitEditMode();
+  });
+  // Helper to convert rgb to hex
+  function rgb2hex(rgb) {
+    if (!rgb) return '#66ccff';
+    const result = rgb.match(/\d+/g);
+    if (!result) return '#66ccff';
+    return '#' + result.slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
+    }
+  });
+</script>
 
 
 {% endblock %}
