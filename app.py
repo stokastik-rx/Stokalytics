@@ -33,7 +33,7 @@ else:
     db_path = f'sqlite:///{abs_db_path}'
 print("Using DB path:", db_path)
 
-app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
+app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/static')
 app.config['SQLALCHEMY_DATABASE_URI'] = db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
