@@ -4,55 +4,99 @@
 <div class="container">
   <h1>Banking</h1>
 
-  <div class="button-row">
-    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
-    <button class="btn" id="openBankModalBtn">Add Bank</button>
-    <button class="btn btn-outline-green" onclick="toggleDepositForm()">Deposit</button>
-    <button class="btn btn-outline-red" onclick="toggleWithdrawalForm()">Withdrawal</button>
+  <div class="button-row" style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+      <button class="btn" id="openBankModalBtn">Add Bank</button>
+      <button class="btn btn-outline-green" id="openDepositModalBtn">Deposit</button>
+      <button class="btn btn-outline-red" id="openWithdrawalModalBtn">Withdrawal</button>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{{ url_for('donate') }}" class="btn" style="margin-right: 0;">Support Development</a>
+      <button class="btn" onclick="openFeedbackModal()">Give Feedback</button>
+      <button class="btn" onclick="openSettingsModal()">Settings</button>
+      <a href="{{ url_for('logout')}}" class="btn btn-outline-red">Logout</a>
+    </div>
   </div>
 
-  <!-- Forms -->
-  <div id="depositForm" class="session-form hidden" style="margin-left: 24.5rem;">
-    <form method="POST" action="{{ url_for('update_ledger') }}">
-      <div class="form-grid" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <select name="venture" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
-          {% for venture in unique_types %}
-            <option value="{{ venture }}">{{ venture }}</option>
-          {% endfor %}
-        </select>
-        <span style="color: #00ff99; font-size: 1.5rem;">→</span>
-        <select name="account" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
-          {% for bank in banks %}
-            <option value="{{ bank.name }}">{{ bank.name }}</option>
-          {% endfor %}
-        </select>
-        <input type="number" name="deposit" step="0.01" required placeholder="Amount" style="width: 100%; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem; margin-top: 1rem;">
+  <!-- Deposit Modal -->
+<div id="depositModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 400px; width: 90%; position: relative;">
+    <button type="button" class="modal-close-btn" onclick="closeModal('depositModal')" style="position: absolute; top: 16px; right: 18px; background: none; border: none; color: #fff; font-size: 1.7rem; cursor: pointer;">&times;</button>
+    <h3 style="color: #fff; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Deposit</h3>
+    <form method="POST" action="{{ url_for('update_ledger') }}" id="depositFormModal">
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 1.1rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <select name="venture" id="depositVentureSelect" required class="custom-select compact-select" style="flex: 1 1 0; min-width: 0;">
+            <!-- Options populated by JS -->
+          </select>
+          <span style="color: #00ff99; font-size: 1.3rem; margin: 0 0.15rem;">&#8594;</span>
+          <select name="account" required class="custom-select compact-select" style="flex: 1 1 0; min-width: 0;">
+            {% for bank in banks %}
+              <option value="{{ bank.name }}">{{ bank.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <input type="number" name="deposit" step="0.01" required placeholder="Amount" class="compact-input" style="width: 95%; margin: 0 auto; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.45rem; font-size: 0.98rem; border-radius: 7px;">
         <input type="hidden" name="date" value="{{ datetime.utcnow().date() }}">
-        <button type="submit" class="btn" style="margin-top: 1rem;">Submit</button>
+        <button type="submit" class="btn" style="margin-top: 1.1rem; width: 100%; font-size: 1.1rem;">Submit</button>
       </div>
     </form>
   </div>
+</div>
 
-  <div id="withdrawalForm" class="session-form hidden" style="margin-left: 30.5rem;">
-    <form method="POST" action="{{ url_for('update_ledger') }}">
-      <div class="form-grid" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <select name="account" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
-          {% for bank in banks %}
-            <option value="{{ bank.name }}">{{ bank.name }}</option>
-          {% endfor %}
-        </select>
-        <span style="color: #ff4444; font-size: 1.5rem;">→</span>
-        <select name="venture" required style="background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem;">
-          {% for venture in unique_types %}
-            <option value="{{ venture }}">{{ venture }}</option>
-          {% endfor %}
-        </select>
-        <input type="number" name="withdrawal" step="0.01" required placeholder="Amount" style="width: 100%; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.5rem; margin-top: 1rem;">
+<!-- Withdrawal Modal -->
+<div id="withdrawalModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 400px; width: 90%; position: relative;">
+    <button type="button" class="modal-close-btn" onclick="closeModal('withdrawalModal')" style="position: absolute; top: 16px; right: 18px; background: none; border: none; color: #fff; font-size: 1.7rem; cursor: pointer;">&times;</button>
+    <h3 style="color: #fff; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace;">Withdrawal</h3>
+    <form method="POST" action="{{ url_for('update_ledger') }}" id="withdrawalFormModal">
+      <div class="form-group" style="display: flex; flex-direction: column; gap: 1.1rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <select name="account" required class="custom-select compact-select" style="flex: 1 1 0; min-width: 0;">
+            {% for bank in banks %}
+              <option value="{{ bank.name }}">{{ bank.name }}</option>
+            {% endfor %}
+          </select>
+          <span style="color: #ff4444; font-size: 1.3rem; margin: 0 0.15rem;">&#8594;</span>
+          <select name="venture" id="withdrawalVentureSelect" required class="custom-select compact-select" style="flex: 1 1 0; min-width: 0;">
+            <!-- Options populated by JS -->
+          </select>
+        </div>
+        <input type="number" name="withdrawal" step="0.01" required placeholder="Amount" class="compact-input" style="width: 95%; margin: 0 auto; background-color: #111; color: #fff; border: 1px solid #333; font-family: 'JetBrains Mono', monospace; padding: 0.45rem; font-size: 0.98rem; border-radius: 7px;">
         <input type="hidden" name="date" value="{{ datetime.utcnow().date() }}">
-        <button type="submit" class="btn" style="margin-top: 1rem;">Submit</button>
+        <button type="submit" class="btn" style="margin-top: 1.1rem; width: 100%; font-size: 1.1rem;">Submit</button>
       </div>
     </form>
   </div>
+</div>
+
+<!-- Remove default dropdown arrows for custom-select and make compact -->
+<style>
+.custom-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none !important;
+  background: #111;
+  border: 1px solid #333;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  border-radius: 7px;
+}
+.compact-select {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.98rem;
+}
+.compact-input {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.98rem;
+}
+.custom-select:focus, .compact-input:focus {
+  outline: 2px solid #00ff99;
+  border-color: #00ff99;
+}
+</style>
 
   <div id="bankForm" class="session-form hidden" style="margin-left: 18rem;">
     <form method="POST" action="{{ url_for('add_bank') }}">
@@ -63,27 +107,50 @@
     </form>
   </div>
 
-  <!-- Layout -->
-  <div style="display: flex; margin-top: 2rem; gap: 2rem; align-items: flex-start;">
-    <!-- Sidebar -->
+  <div class="main-content" style="display: flex; align-items: flex-start; gap: 2.5rem;">
+    <!-- Sidebar (explicitly included) -->
     <div style="width: 250px; display: flex; flex-direction: column; gap: 2rem;">
-      <!-- Remove Banks sidebar section entirely -->
-      <!-- <div class="sidebar" ...> ... </div> -->
-
+      <!-- Balances Panel -->
       <div class="sidebar" style="background-color: #111; padding: 1rem; border-radius: 10px;">
+        <h3 class="sidebar-title">Balances</h3>
+        {% set bank_colors = {} %}
+        {% for b in banks %}{% set _ = bank_colors.update({b.name: b.color or '#66ccff'}) %}{% endfor %}
+        <ul style="list-style: none; padding: 0; margin: 0; color:#aaa; font-size: 0.93em;">
+          {% set venture_colors = {'Blackjack': '#00ffff', 'Match Play': '#ffaa00', 'Poker': '#ff66cc'} %}
+          <li style="padding: 0.2rem 0 0.2rem 0; color: #fff; font-weight: bold; letter-spacing: 0.5px; text-decoration: underline;">Ventures</li>
+          {% for venture in unique_types %}
+            <li style="padding: 0.28rem 0; display: flex; justify-content: space-between; align-items: center;{% if loop.last %} margin-bottom: 1.1em;{% endif %}">
+              <strong style="color: {{ venture_colors.get(venture, '#00ff99') }};">{{ venture }}</strong>
+              {% set vbal = bankroll_totals[venture] %}
+              <span style="color: {{ vbal >= 0 and '#00ff99' or '#ff4444' }}; font-weight: bold; min-width: 80px; text-align: right;">${{ '%.2f'|format(vbal) }}</span>
+            </li>
+          {% endfor %}
+          <li style="padding: 0.2rem 0 0.2rem 0; color: #fff; font-weight: bold; letter-spacing: 0.5px; text-decoration: underline;">Banks</li>
+          {% for bank, value in bank_balances.items() %}
+            <li style="padding: 0.28rem 0; display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: {{ bank_colors[bank] }};">{{ bank }}</strong>
+              <span style="color: {{ value >= 0 and '#00ff99' or '#ff4444' }}; font-weight: bold; min-width: 80px; text-align: right;">${{ '%.2f'|format(value) }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <!-- Ledger Panel -->
+      <div class="sidebar" style="background-color: #111; padding: 1rem; border-radius: 10px; max-height: 340px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #444 #111;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="color: #ffffff; font-family: Consolas, monospace;">Ledger</h3>
+          <h3 class="sidebar-title">Ledger</h3>
           <button type="button" class="btn" id="openLedgerEditModalBtn" style="padding: 2px 8px; font-size: 0.8rem;">Edit</button>
         </div>
         <ul style="list-style: none; padding: 0; margin: 0;">
           {% for entry in ledger %}
+            {% set bank_color = bank_colors.get(entry.account, '#66ccff') %}
+            {% set venture_color = venture_colors.get(entry.venture, '#00ff99') %}
             <li class="ledger-display" id="display-{{ entry.id }}" style="padding: 0.25rem 0; color: #aaa; border-bottom: 1px solid #222; font-size: 0.75rem;">
               <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace;">
-                <span style="flex: 1;">{{ entry.account }}</span>
+                <span style="flex: 1; color: {{ bank_color }};">{{ entry.account }}</span>
                 <span class="arrow {% if entry.withdrawal > 0 %}negative{% else %}positive{% endif %}">
                   {% if entry.withdrawal > 0 %}→{% else %}←{% endif %}
                 </span>
-                <span style="flex: 1; text-align: right;">{{ entry.venture }}</span>
+                <span style="flex: 1; text-align: right; color: {{ venture_color }};">{{ entry.venture }}</span>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span>{{ entry.date }}</span>
@@ -94,71 +161,53 @@
         </ul>
       </div>
     </div>
- 
-
-
-   <!-- Venture Panels stacked vertically -->
-<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 0.75rem; max-width: 60%; margin-left: -10px;">
-  {% for venture in unique_types %}
-    <div style="background-color: #111; border-radius: 10px; padding: 1rem; color: #ccc; box-shadow: 0 0 5px #000; width: 100%; transform: scale(0.95); transform-origin: top left;">
-      <h4 style="margin: 0 0 0.5rem 0; font-family: 'JetBrains Mono', monospace; color: #ffffff;">
-        {{ venture }} Bankroll
-      </h4>
-      <div style="width: 100%; height: 160px; margin-top: 1rem;">
-        <canvas id="chart-{{ venture | replace(' ', '-') }}"></canvas>
+    <!-- Dashboard-style grid for charts -->
+    <div class="dashboard-grid" style="flex: 1; row-gap: 2.8em;">
+      <!-- Top Row -->
+      <div class="chart chart-wide">
+        <div class="chart-label" style="color: #00ff99; border-color: #00ff99;">Total Bankroll by Date</div>
+        <canvas id="totalBankrollChart"></canvas>
+        <div style="display: flex; gap: 2.5rem; justify-content: center; margin-top: 0.5em; font-size: 0.93em; margin-bottom: 2.2em;">
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 18px; height: 3px; background: #00ff99; display: inline-block; border-radius: 2px;"></span>Bankroll (with Vault)</span>
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 18px; height: 3px; background: #888; display: inline-block; border-radius: 2px;"></span>Cash on Hand</span>
+        </div>
+      </div>
+      <div class="chart chart-wide">
+        <div class="chart-label" style="color: {{ vault_color }}; border-color: {{ vault_color }};">Vault Balance by Date</div>
+        <canvas id="vaultBankChart"></canvas>
+        <div id="vault-legend" style="display: flex; gap: 2rem; justify-content: center; margin-top: 0.5em; font-size: 0.93em; margin-bottom: 2.2em;">
+          {% for v, color in venture_colors.items() %}
+            <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 18px; height: 3px; background: {{ color }}; display: inline-block; border-radius: 2px;"></span>{{ v }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <!-- Bottom Row: Venture Charts -->
+      <div class="chart chart-narrow">
+        <div class="chart-label" style="color: #00ffff; border-color: #00ffff;">Blackjack Bankroll</div>
+        <canvas id="ventureChart-Blackjack"></canvas>
+        <div style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 0.3em; font-size: 0.91em;">
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 14px; height: 3px; background: #00ffff; display: inline-block; border-radius: 2px;"></span>Bankroll</span>
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 14px; height: 3px; background: #888; display: inline-block; border-radius: 2px;"></span>Cash on Hand</span>
+        </div>
+      </div>
+      <div class="chart chart-narrow">
+        <div class="chart-label" style="color: #ffaa00; border-color: #ffaa00;">Match Play Bankroll</div>
+        <canvas id="ventureChart-Match Play"></canvas>
+        <div style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 0.3em; font-size: 0.91em;">
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 14px; height: 3px; background: #ffaa00; display: inline-block; border-radius: 2px;"></span>Bankroll</span>
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 14px; height: 3px; background: #888; display: inline-block; border-radius: 2px;"></span>Cash on Hand</span>
+        </div>
+      </div>
+      <div class="chart chart-narrow">
+        <div class="chart-label" style="color: #ff66cc; border-color: #ff66cc;">Poker Bankroll</div>
+        <canvas id="ventureChart-Poker"></canvas>
+        <div style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 0.3em; font-size: 0.91em;">
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 14px; height: 3px; background: #ff66cc; display: inline-block; border-radius: 2px;"></span>Bankroll</span>
+          <span style="display: flex; align-items: center; gap: 0.5em;"><span style="width: 14px; height: 3px; background: #888; display: inline-block; border-radius: 2px;"></span>Cash on Hand</span>
+        </div>
       </div>
     </div>
-  {% endfor %}
-
- 
-</div>
-<!-- Right Sidebar Container -->
-<div style="width: 220px; display: flex; flex-direction: column; gap: 2rem;">
-
-  <!-- Current Bankrolls Panel -->
-  <div class="sidebar" style="background-color: #111; padding: 1rem; border-radius: 10px;">
-    <h3 style="color: #ffffff; font-family: Consolas, monospace;">Current Bankrolls</h3>
-    <ul style="list-style: none; padding: 0; margin: 0; color:#aaa">
-      {% for venture in unique_types %}
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #222;">
-          <strong>{{ venture }}:</strong><br>
-          ${{ bankroll_totals[venture] | round(2) }}
-        </li>
-      {% endfor %}
-    </ul>
   </div>
-
-  <!-- Bank Totals Panel -->
-  <div class="sidebar" style="background-color: #111; padding: 1rem; border-radius: 10px;">
-    <h3 style="color: #ffffff; font-family: Consolas, monospace;">Net Bank Change</h3>
-    <ul style="list-style: none; padding: 0; margin: 0; color:#aaa">
-      {% for bank, value in bank_balances.items() %}
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #222;">
-          <strong>{{ bank }}:</strong><br>
-          ${{ value | round(2) }}
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
-
-  <!-- Pie Chart Panel -->
-<div class="sidebar" style="background-color: #111; padding: 1rem; border-radius: 10px; height: 185px;">
-  <h3 style="color: #ffffff; font-family: Consolas, monospace;">Bankroll Breakdown</h3>
-    
-    <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
-        <div style="width: 65%; height: 65%;">
-          <canvas id="bankrollPieChart" style="width: 100% !important; height: 100% !important;"></canvas>
-        </div>
-</div>
-
-
-
-</div>
-
-
-
-  </div>
-</div>
 
 <!-- Ledger Edit Modal -->
 <div id="ledgerEditModal" class="modal-overlay">
@@ -235,119 +284,207 @@
 
 
 <!-- Scripts -->
+<!-- Chart.js scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-
-{% set pie_values = [] %}
-{% for v in unique_types %}
-  {% set _ = pie_values.append(bankroll_totals[v]) %}
-{% endfor %}
-<script>
-  window.pieData = {
-    labels: {{ unique_types | tojson }},
-    values: {{ pie_values | tojson }}
-  };
-</script>
-
-
-
 <script>
   Chart.defaults.responsive = true;
   Chart.defaults.maintainAspectRatio = false;
   Chart.defaults.devicePixelRatio = window.devicePixelRatio || 1;
 
-  window.ventureChartData = {{ ventureChartData | tojson }};
-
-
-
-
-
-
-
-
-  
-  function toggleBankForm() {
-    const form = document.getElementById('bankForm');
-    form.classList.toggle('hidden');
-  }
-
-  function toggleWithdrawalForm() {
-    const form = document.getElementById('withdrawalForm');
-    form.classList.toggle('hidden');
-  }
-
-  function toggleDepositForm() {
-    const form = document.getElementById('depositForm');
-    form.classList.toggle('hidden');
-  }
-
-  function toggleLedgerEdit() {
-    const displayItems = document.querySelectorAll('.ledger-display');
-    const editItems = document.querySelectorAll('.ledger-edit');
-
-    displayItems.forEach(item => {
-      item.style.display = item.style.display === 'none' ? 'block' : 'none';
+  // Helper to create area chart with two lines and legend
+  function createDualAreaChart(ctx, label1, data1, color1, label2, data2, color2) {
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: label1,
+            data: data1,
+            borderColor: color1,
+            backgroundColor: color1 + '33',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3
+          },
+          {
+            label: label2,
+            data: data2,
+            borderColor: color2,
+            backgroundColor: color2 + '00',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3,
+            borderDash: [5, 5]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: context => `$${context.parsed.y.toLocaleString()}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'day' },
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 }
+            },
+            grid: { color: '#333' }
+          },
+          y: {
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 },
+              callback: value => `$${value.toLocaleString()}`
+            },
+            grid: { color: '#333' }
+          }
+        }
+      }
     });
+  }
 
-    editItems.forEach(item => {
-      item.style.display = item.style.display === 'none' ? 'block' : 'none';
+  // Helper for single-line area chart
+  function createAreaChart(ctx, label, data, color) {
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: label,
+          data: data,
+          borderColor: color,
+          backgroundColor: color + '33',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: context => `$${context.parsed.y.toLocaleString()}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'day' },
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 }
+            },
+            grid: { color: '#333' }
+          },
+          y: {
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 },
+              callback: value => `$${value.toLocaleString()}`
+            },
+            grid: { color: '#333' }
+          }
+        }
+      }
     });
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (window.ventureChartData) {
-      Object.entries(window.ventureChartData).forEach(([venture, data]) => {
-        const canvasId = 'chart-' + venture.replace(/\s+/g, '-');
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            datasets: [{
-              label: venture + ' Cumulative Balance',
-              data: data,
-              borderColor: '#00ff99',
-              backgroundColor: '#00ff9966',
-              tension: 0.3,
-              fill: false,
-              pointRadius: 3
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: context => `$${context.parsed.y.toLocaleString()}`
-                }
-              }
-            },
-            scales: {
-              x: {
-                type: 'time',
-                time: { unit: 'day' },
-                ticks: {
-                  color: '#ffffff',
-                  font: { family: "'JetBrains Mono', monospace", size: 11 }
-                },
-                grid: { color: '#333' }
-              },
-              y: {
-                ticks: {
-                  color: '#ffffff',
-                  font: { family: "'JetBrains Mono', monospace", size: 11 },
-                  callback: value => `$${value.toLocaleString()}`
-                },
-                grid: { color: '#333' }
-              }
-            }
-          }
-        });
+    // Top charts
+    createDualAreaChart(
+      document.getElementById('totalBankrollChart').getContext('2d'),
+      'Bankroll (with Vault)',
+      {{ total_bankroll_with_vault|tojson }},
+      '#00ff99',
+      'Cash on Hand',
+      {{ total_cash_on_hand|tojson }},
+      '#888'
+    );
+    // Vault chart: multi-line for each venture, plus original filled area
+    const vaultCtx = document.getElementById('vaultBankChart').getContext('2d');
+    const vaultData = [];
+    const vaultColors = {{ venture_colors|tojson }};
+    const vaultByVenture = {{ vault_bank_chart_by_venture|tojson }};
+    // Add the original total vault line as a filled area
+    vaultData.push({
+      label: 'Total Vault',
+      data: {{ vault_bank_chart|tojson }},
+      borderColor: '{{ vault_color }}',
+      backgroundColor: ('{{ vault_color }}' || '#66ccff') + '33',
+      tension: 0.3,
+      fill: true,
+      pointRadius: 3
+    });
+    // Add per-venture lines (not filled)
+    for (const [venture, data] of Object.entries(vaultByVenture)) {
+      vaultData.push({
+        label: venture,
+        data: data,
+        borderColor: vaultColors[venture] || '#66ccff',
+        backgroundColor: (vaultColors[venture] || '#66ccff') + '00',
+        tension: 0.3,
+        fill: false,
+        pointRadius: 3
       });
     }
+    new Chart(vaultCtx, {
+      type: 'line',
+      data: { datasets: vaultData },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: context => `${context.dataset.label}: $${context.parsed.y.toLocaleString()}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'day' },
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 }
+            },
+            grid: { color: '#333' }
+          },
+          y: {
+            ticks: {
+              color: '#ffffff',
+              font: { family: "'JetBrains Mono', monospace", size: 11 },
+              callback: value => `$${value.toLocaleString()}`
+            },
+            grid: { color: '#333' }
+          }
+        }
+      }
+    });
+    // Bottom row: Blackjack, Match Play, Poker
+    const ventureColors = { 'Blackjack': '#00ffff', 'Match Play': '#ffaa00', 'Poker': '#ff66cc' };
+    {% for chart in venture_charts %}
+      createDualAreaChart(
+        document.getElementById('ventureChart-{{ chart.name }}').getContext('2d'),
+        'Bankroll',
+        {{ chart.data|tojson }},
+        ventureColors['{{ chart.name }}'] || '#00ff99',
+        'Cash on Hand',
+        {{ chart.cash_on_hand|tojson }},
+        '#888'
+      );
+    {% endfor %}
   });
 </script>
 
@@ -414,9 +551,7 @@
             {% if bank.is_vault and banks|length > 1 %}<span class="badge" style="background:#222; color:#00ffff; border-radius:4px; font-size:0.8em; padding:2px 7px; margin-left:6px;">Vault</span>{% endif %}
           </div>
           <div style="display: flex; align-items: center; gap: 0.7rem;">
-            {% if banks|length > 1 and not bank.is_vault %}
-              <button class="set-vault-btn btn btn-outline-green" data-bank-id="{{ bank.id }}" style="font-size: 0.82rem; padding: 0.12rem 0.5rem; margin-right: 0.3rem; border-radius: 4px; line-height: 1.1; display: none;">Set as Vault</button>
-            {% endif %}
+            <button class="set-vault-btn btn btn-outline-green" data-bank-id="{{ bank.id }}" style="font-size: 0.82rem; padding: 0.12rem 0.5rem; margin-right: 0.3rem; border-radius: 4px; line-height: 1.1; display: none;">Set as Vault</button>
             <button class="delete-venture-btn delete-bank-btn" data-bank-id="{{ bank.id }}" style="background: #ff4444; color: white; border: none; padding: 0.12rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; transition: background 0.2s; line-height: 1.1; display: none;">Delete</button>
           </div>
         </div>
@@ -432,8 +567,7 @@
     <div style="color: #666; font-size: 0.93rem; margin-bottom: 1rem;">Remove banks you no longer need. This won't delete your ledger data.</div>
     <!-- Modal footer -->
     <div style="display: flex; justify-content: flex-end; gap: 1.2rem; margin-top: 1.5rem;">
-      <button id="cancelBankModalBtn" class="btn">Cancel</button>
-      <button id="saveBankModalBtn" class="btn btn-outline-green" style="min-width: 100px; display: none;">Save</button>
+      <button id="saveBankModalBtn" class="btn btn-outline-green">Save</button>
     </div>
   </div>
 </div>
@@ -446,8 +580,17 @@ document.addEventListener('DOMContentLoaded', function() {
   const bankModal = document.getElementById('bankModal');
   const openBankModalBtn = document.getElementById('openBankModalBtn');
   const closeBankModalBtn = document.getElementById('closeBankModalBtn');
+  let originalVaultId = null;
   if (openBankModalBtn) {
     openBankModalBtn.addEventListener('click', function() {
+      // Set originalVaultId when opening the modal
+      const badge = document.querySelector('.venture-info .badge');
+      if (badge) {
+        const btn = badge.closest('.venture-item').querySelector('.set-vault-btn');
+        originalVaultId = btn ? btn.getAttribute('data-bank-id') : null;
+      } else {
+        originalVaultId = null;
+      }
       bankModal.style.display = 'flex';
     });
   }
@@ -687,12 +830,9 @@ document.addEventListener('DOMContentLoaded', function() {
   let intendedVaultId = null;
   let banksToDelete = new Set();
   // Store original state for cancel
-  let originalVaultId = null;
   function enterEditMode() {
     editMode = true;
-    // Show buttons
     document.querySelectorAll('.set-vault-btn, .delete-bank-btn').forEach(btn => btn.style.display = '');
-    saveBankModalBtn.style.display = '';
     editBanksModeBtn.textContent = 'Done';
     // Store original vault
     const currentVault = document.querySelector('.set-vault-btn[style*="display: none"]')?.closest('.venture-item')?.querySelector('.badge');
@@ -708,23 +848,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function exitEditMode() {
     editMode = false;
     document.querySelectorAll('.set-vault-btn, .delete-bank-btn').forEach(btn => btn.style.display = 'none');
-    saveBankModalBtn.style.display = 'none';
     editBanksModeBtn.textContent = 'Edit';
-    // Revert UI to original state
-    document.querySelectorAll('.venture-info .badge').forEach(b => {
-      if (b.textContent.trim() === 'Vault') b.remove();
-    });
-    if (originalVaultId) {
-      const btn = document.querySelector(`.set-vault-btn[data-bank-id='${originalVaultId}']`);
-      if (btn) {
-        const info = btn.closest('.venture-item').querySelector('.venture-info');
-        const badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.style.cssText = 'background:#222; color:#00ffff; border-radius:4px; font-size:0.8em; padding:2px 7px; margin-left:6px;';
-        badge.textContent = 'Vault';
-        info.appendChild(badge);
-      }
-    }
+    // Do NOT revert the badge to the original vault here. Just leave the badge on the intendedVaultId.
     // Unmark any banks visually for deletion
     document.querySelectorAll('.venture-item').forEach(item => {
       item.style.opacity = '';
@@ -745,11 +870,10 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       if (!editMode) return;
-      // Remove all Vault badges
-      document.querySelectorAll('.venture-info .badge').forEach(b => {
-        if (b.textContent.trim() === 'Vault') b.remove();
-      });
-      // Add badge to this item
+      // Remove all Vault badges and show all Set as Vault buttons
+      document.querySelectorAll('.venture-info .badge').forEach(b => { if (b.textContent.trim() === 'Vault') b.remove(); });
+      document.querySelectorAll('.set-vault-btn').forEach(b => b.style.display = '');
+      // Add badge to this item and hide its Set as Vault button
       const item = btn.closest('.venture-item');
       const info = item.querySelector('.venture-info');
       const badge = document.createElement('span');
@@ -757,6 +881,7 @@ document.addEventListener('DOMContentLoaded', function() {
       badge.style.cssText = 'background:#222; color:#00ffff; border-radius:4px; font-size:0.8em; padding:2px 7px; margin-left:6px;';
       badge.textContent = 'Vault';
       info.appendChild(badge);
+      btn.style.display = 'none';
       intendedVaultId = btn.getAttribute('data-bank-id');
     });
   });
@@ -803,7 +928,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Cancel button logic
   cancelBankModalBtn.addEventListener('click', function(e) {
     e.preventDefault();
-    exitEditMode();
+    bankModal.style.display = 'none';
+    location.reload();
   });
   // Helper to convert rgb to hex
   function rgb2hex(rgb) {
@@ -813,6 +939,45 @@ document.addEventListener('DOMContentLoaded', function() {
     return '#' + result.slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
     }
   });
+</script>
+
+<script>
+function openModal(id) {
+  document.getElementById(id).style.display = 'flex';
+}
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+document.getElementById('openDepositModalBtn').onclick = function() {
+  openModal('depositModal');
+  populateVentureDropdown('depositVentureSelect');
+};
+document.getElementById('openWithdrawalModalBtn').onclick = function() {
+  openModal('withdrawalModal');
+  populateVentureDropdown('withdrawalVentureSelect');
+};
+document.getElementById('depositModal').onclick = function(e) {
+  if (e.target === this) closeModal('depositModal');
+};
+document.getElementById('withdrawalModal').onclick = function(e) {
+  if (e.target === this) closeModal('withdrawalModal');
+};
+function populateVentureDropdown(selectId) {
+  // Get unique_types from template context
+  const uniqueTypes = {{ unique_types|tojson }};
+  // Fetch user ventures from API and merge
+  fetch('/api/user_ventures').then(r => r.json()).then(userVentures => {
+    const allVentures = Array.from(new Set([...uniqueTypes, ...userVentures])).sort();
+    const select = document.getElementById(selectId);
+    select.innerHTML = '';
+    allVentures.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
+    });
+  });
+}
 </script>
 
 

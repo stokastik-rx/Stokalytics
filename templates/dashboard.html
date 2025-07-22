@@ -70,7 +70,7 @@
     <!-- Sidebar Column: vertical flex for stacking -->
     <div class="sidebar-scroll" style="display: flex; flex-direction: column; align-items: stretch; gap: 0; height: calc(100vh - 70px); overflow-y: scroll; min-height: 0;">
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; font-size: 0.92em; height: auto; min-height: 0;">
-        <h3 style="color: #ffffff; font-family: Consolas, monospace;">Ventures</h3>
+        <h3 class="sidebar-title">Ventures</h3>
         <ul style="list-style: none; padding-left: 0;">
           {% for type in unique_types %}
             <li style="color: #aaa; padding: 0.25rem 0; border-bottom: 1px solid #222;">
@@ -116,7 +116,7 @@
         </div>
       </div>
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.5rem; font-size: 0.90em; height: auto; min-height: 0;">
-        <h3 style="color: #ffffff; font-family: Consolas, monospace;">All Time Statistics</h3>
+        <h3 class="sidebar-title">All Time Statistics</h3>
         <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.90em;">
           <li style="margin-bottom: 0.3em;">Total Hours Played: <span style="color:#00ccff; float:right;">{{ all_time_stats.total_hours }}</span></li>
           <li style="margin-bottom: 0.3em;">Total Profit: <span style="color:{% if all_time_stats.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ all_time_stats.total_profit }}</span></li>
@@ -135,7 +135,7 @@
       </div>
       <!-- Personal Bests Panel -->
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.2rem; font-size: 0.89em; height: auto; min-height: 0;">
-        <h3 style="color: #ffffff; font-family: Consolas, monospace;">Personal Bests</h3>
+        <h3 class="sidebar-title">Personal Bests</h3>
         <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.89em;">
           <li style="margin-bottom: 0.3em;">Longest Winning Streak: <span style="color:#00ff99; float:right;">{{ personal_bests.longest_streak }}</span></li>
           <li style="margin-bottom: 0.3em;">Most Profitable Day: <span style="color:#00ff99; float:right;">${{ personal_bests.most_profitable_day[1] }}</span></li>
@@ -145,7 +145,7 @@
       <!-- Reminders Panel -->
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.2rem; font-size: 0.89em; position: relative; min-height: 130px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5em;">
-          <h3 style="color: #ffffff; font-family: Consolas, monospace; margin: 0;">Reminders</h3>
+          <h3 class="sidebar-title" style="margin: 0;">Reminders</h3>
           <button class="btn btn-outline-green" style="font-size: 0.85em; padding: 2px 8px; height: 1.7em; line-height: 1; margin-left: 0.5em;">Add Reminder</button>
         </div>
         <div style="color: #ffaa00; font-size: 1.1em; text-align: center; margin-top: 1em;">Coming soon!</div>
@@ -764,17 +764,12 @@ async function loadVenturesForManagement() {
 }
 
 async function deleteVenture(ventureType) {
-  if (!confirm(`Are you sure you want to delete the "${ventureType}" venture? This will remove it from your sidebar but won't delete any session data.`)) {
-    return;
-  }
-  
+  // Remove confirmation dialog and alert
   try {
     const response = await fetch(`/api/user_ventures/${encodeURIComponent(ventureType)}`, {
       method: 'DELETE'
     });
-    
     const result = await response.json();
-    
     if (result.success) {
       // Remove from sidebar
       const ventureList = document.querySelector('.sidebar ul');
@@ -786,20 +781,15 @@ async function deleteVenture(ventureType) {
           }
         });
       }
-      
       // Update session form dropdown
       updateSessionFormTypeDropdown();
-      
       // Reload venture management list
       loadVenturesForManagement();
-      
-      alert(`${ventureType} venture deleted successfully!`);
     } else {
-      alert(`Error deleting venture: ${result.error}`);
+      // Optionally handle error silently
     }
   } catch (error) {
-    console.error('Error deleting venture:', error);
-    alert('Error deleting venture. Please try again.');
+    // Optionally handle error silently
   }
 }
 </script>

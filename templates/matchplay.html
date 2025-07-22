@@ -3,9 +3,17 @@
 {% block content %}
 <div class="container">
   <h1>Match Play</h1>
-  <div class="button-row">
-    <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
-    <a href="{{ url_for('view_logs') }}?type=Match Play" class="btn">Match Play Logs</a>
+  <div class="button-row" style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+      <a href="{{ url_for('view_logs') }}?type=Match Play" class="btn">Match Play Logs</a>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{{ url_for('donate') }}" class="btn" style="margin-right: 0;">Support Development</a>
+      <button class="btn" onclick="openFeedbackModal()">Give Feedback</button>
+      <button class="btn" onclick="openSettingsModal()">Settings</button>
+      <a href="{{ url_for('logout')}}" class="btn btn-outline-red">Logout</a>
+    </div>
   </div>
 
   <div class="main-content" style="display: flex; gap: 2.5rem; align-items: flex-start;">

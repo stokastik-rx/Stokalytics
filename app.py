@@ -152,7 +152,7 @@ def dashboard():
     # Combine session types and user ventures, removing duplicates
     unique_types = sorted(set(session_types + user_venture_types))
 
-    # === Chart 2: Total Bankroll by Date (from LedSess) ===
+    # === Chart 2: Total Bankroll by Date (from LedSess, includes vault balance) ===
     ledsess_entries = LedSessRecord.query.filter_by(user_id=current_user.id).order_by(LedSessRecord.date, LedSessRecord.id).all()
     cumulative = 0
     date_to_cumulative = {}
@@ -160,6 +160,7 @@ def dashboard():
         cumulative += entry.value or 0
         date_str = entry.date.isoformat()
         date_to_cumulative[date_str] = cumulative
+    # This already includes vault balance as part of the bankroll, since vault entries are in LedSessRecord
     combined_chart_data = [
         {"x": date, "y": round(val, 2)} for date, val in sorted(date_to_cumulative.items())
     ]
@@ -587,52 +588,145 @@ def add_session():
 def view_banking():
     sessions = SessionRecord.query.filter_by(user_id=current_user.id).all()
     banks = BankRecord.query.filter_by(user_id=current_user.id).order_by(BankRecord.name).all()
+    # Identify the vault bank (or fallback to first bank)
+    vault_bank = None
+    for bank in banks:
+        if getattr(bank, 'is_vault', False):
+            vault_bank = bank
+            break
+    if not vault_bank and banks:
+        vault_bank = banks[0]  # fallback: only bank or first bank
     ledger = LedgerRecord.query.filter_by(user_id=current_user.id).order_by(LedgerRecord.date.desc()).all()
 
     unique_types = sorted(set(s.type for s in sessions if s.type).union(
                           set(l.venture for l in ledger if l.venture)))
 
-    chart_data = {}
-    bankroll_totals = {}
+    # --- Total Bankroll by Date (all banks/ventures) ---
+    from logs import LedSessRecord
+    ledsess_entries = LedSessRecord.query.filter_by(user_id=current_user.id).order_by(LedSessRecord.date, LedSessRecord.id).all()
+    cumulative_with_vault = 0
+    date_to_with_vault = {}
+    vault_bank_names = [b.name for b in banks if getattr(b, 'is_vault', False)]
+    vault_cumulative = 0
+    date_to_vault = {}
+    for entry in ledsess_entries:
+        cumulative_with_vault += entry.value or 0
+        date_str = entry.date.isoformat()
+        date_to_with_vault[date_str] = cumulative_with_vault
+        # Only sum vault entries for vault_balance
+        if entry.type in vault_bank_names:
+            vault_cumulative += entry.value or 0
+        date_to_vault[date_str] = vault_cumulative
+    # Cash on hand = bankroll_with_vault - vault_balance at each date
+    total_bankroll_with_vault = [
+        {"x": date, "y": round(date_to_with_vault[date], 2)} for date in sorted(date_to_with_vault.keys())
+    ]
+    total_cash_on_hand = [
+        {"x": date, "y": round(date_to_with_vault[date] - abs(date_to_vault[date]), 2)} for date in sorted(date_to_with_vault.keys())
+    ]
 
+    # --- Vault Bank Balance by Date (all ventures combined) ---
+    vault_bank_chart = []
+    if vault_bank:
+        bank_entries = [l for l in ledger if l.account == vault_bank.name]
+        bank_entries.sort(key=lambda l: l.date)
+        cumulative = 0
+        for entry in bank_entries:
+            cumulative += (entry.deposit or 0) - (entry.withdrawal or 0)
+            vault_bank_chart.append({"x": entry.date.isoformat(), "y": round(cumulative, 2)})
+
+    # --- Vault Bank Balance by Date, split by venture ---
+    vault_bank_chart_by_venture = {}
+    venture_colors = {
+        'Blackjack': '#00ffff',
+        'Match Play': '#ffaa00',
+        'Poker': '#ff66cc'
+    }
+    if vault_bank:
+        # For each venture, build cumulative sum by date for this bank and venture
+        for venture in ['Blackjack', 'Match Play', 'Poker']:
+            bank_entries = [l for l in ledger if l.account == vault_bank.name and l.venture == venture]
+            bank_entries.sort(key=lambda l: l.date)
+            cumulative = 0
+            chart = []
+            for entry in bank_entries:
+                cumulative += (entry.deposit or 0) - (entry.withdrawal or 0)
+                chart.append({"x": entry.date.isoformat(), "y": round(cumulative, 2)})
+            vault_bank_chart_by_venture[venture] = chart
+
+    # --- Venture Chart Data (Blackjack, Match Play, Poker) ---
+    chart_data = {}
+    chart_data_no_vault = {}
+    bankroll_totals = {}
     for venture in unique_types:
         combined = []
-
+        combined_no_vault = []
+        vault_cumulative = 0
+        date_to_vault = {}
         for s in sessions:
             if s.type == venture:
                 combined.append({
                     "date": s.date,
                     "change": (s.money_out or 0) - (s.money_in or 0)
                 })
-
+                combined_no_vault.append({
+                    "date": s.date,
+                    "change": (s.money_out or 0) - (s.money_in or 0)
+                })
         for l in ledger:
             if l.venture == venture:
                 combined.append({
                     "date": l.date,
                     "change": (l.withdrawal or 0) - (l.deposit or 0)
                 })
-
-        # Sort and deduplicate by date, keeping max cumulative
+                # If this ledger entry is a deposit to the vault, include in with_vault, but not in no_vault
+                if l.account not in vault_bank_names:
+                    combined_no_vault.append({
+                        "date": l.date,
+                        "change": (l.withdrawal or 0) - (l.deposit or 0)
+                    })
+                # Track vault balance for this venture
+                if l.account in vault_bank_names:
+                    vault_cumulative += (l.withdrawal or 0) - (l.deposit or 0)
+                date_to_vault[l.date.isoformat()] = vault_cumulative
         combined.sort(key=lambda x: x["date"])
+        combined_no_vault.sort(key=lambda x: x["date"])
         cumulative = 0
+        cumulative_no_vault = 0
         date_to_cum = {}
-
+        date_to_cum_no_vault = {}
         for item in combined:
             date_str = str(item["date"])
             cumulative += item["change"]
-            if date_str not in date_to_cum or cumulative > date_to_cum[date_str]:
-                date_to_cum[date_str] = round(cumulative, 2)
-
+            date_to_cum[date_str] = round(cumulative, 2)
+        for item in combined_no_vault:
+            date_str = str(item["date"])
+            cumulative_no_vault += item["change"]
+            date_to_cum_no_vault[date_str] = round(cumulative_no_vault, 2)
         sorted_points = sorted(date_to_cum.items())
+        sorted_points_no_vault = sorted(date_to_cum_no_vault.items())
         chart_points = [{"x": d, "y": y} for d, y in sorted_points]
+        # For cash_on_hand, subtract abs(vault balance) at each date
+        chart_points_cash_on_hand = []
+        for d, y in sorted_points:
+            vault_val = abs(date_to_vault.get(d, 0))
+            chart_points_cash_on_hand.append({"x": d, "y": round(y - vault_val, 2)})
         chart_data[venture] = chart_points
-
+        chart_data_no_vault[venture] = chart_points_cash_on_hand
         if chart_points:
             bankroll_totals[venture] = chart_points[-1]["y"]
         else:
             bankroll_totals[venture] = 0
+    # Order: Blackjack, Match Play, Poker
+    venture_order = ["Blackjack", "Match Play", "Poker"]
+    venture_charts = []
+    for v in venture_order:
+        venture_chart = {"name": v, "data": chart_data.get(v, [])}
+        venture_chart["cash_on_hand"] = chart_data_no_vault.get(v, [])
+        venture_charts.append(venture_chart)
 
     # Net change per bank (deposits - withdrawals)
+    from collections import defaultdict
     bank_balances = defaultdict(float)
     for entry in ledger:
         bank_balances[entry.account] += (entry.deposit or 0) - (entry.withdrawal or 0)
@@ -646,7 +740,14 @@ def view_banking():
         ventureChartData=chart_data,
         bankroll_totals=bankroll_totals,
         bank_balances=bank_balances,
-        datetime=datetime
+        datetime=datetime,
+        total_bankroll_with_vault=total_bankroll_with_vault,
+        total_cash_on_hand=total_cash_on_hand,
+        vault_bank_chart=vault_bank_chart,
+        vault_bank_chart_by_venture=vault_bank_chart_by_venture,
+        venture_colors=venture_colors,
+        venture_charts=venture_charts,
+        vault_color=vault_bank.color if vault_bank else None
     )
 
 

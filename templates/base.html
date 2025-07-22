@@ -20,7 +20,203 @@
         {% block content %}{% endblock %}
     </div>
 
+<!-- Feedback Modal -->
+<div id="feedbackModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 600px; width: 90%;">
+    <h3 style="color: #fff; margin-bottom: 1.5rem; text-align: center;">Submit Feedback</h3>
+    <form id="feedbackForm" onsubmit="submitFeedback(event)">
+      <div style="margin-bottom: 1.5rem;">
+        <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Feedback Type:</label>
+        <select id="feedbackType" name="feedback_type" class="styled-select" required>
+          <option value="">Select type...</option>
+          <option value="Bug Report">Bug Report</option>
+          <option value="Feature Request">Feature Request</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 1.5rem;">
+        <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Significance (1-5):</label>
+        <select id="significance" name="significance" class="styled-select" required>
+          <option value="">Select significance...</option>
+          <option value="1">1 - Minor</option>
+          <option value="2">2 - Low</option>
+          <option value="3">3 - Medium</option>
+          <option value="4">4 - High</option>
+          <option value="5">5 - Critical</option>
+        </select>
+        <div id="significanceGuide" style="color: #666; font-size: 0.9em; margin-top: 0.5rem;"></div>
+      </div>
+      <div style="margin-bottom: 1.5rem;">
+        <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Subject:</label>
+        <input type="text" id="subject" name="subject" class="styled-input" placeholder="Brief description of your feedback" required>
+      </div>
+      <div style="margin-bottom: 2rem;">
+        <label style="display: block; color: #ccc; margin-bottom: 0.5rem;">Message:</label>
+        <textarea id="message" name="message" class="styled-input" rows="6" placeholder="Please provide detailed feedback..." required></textarea>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button type="button" class="btn" style="background: #1a1a1a;" onclick="closeFeedbackModal()">Cancel</button>
+        <button type="submit" class="btn btn-outline-green">Submit Feedback</button>
+      </div>
+    </form>
+  </div>
+</div>
 
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 500px; width: 90%;">
+    <h3 style="color: #fff; margin-bottom: 1.5rem; text-align: center;">Settings</h3>
+    <div style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <label style="color: #ccc; font-size: 1rem;">Show Add Venture Button:</label>
+        <label class="custom-slider-switch">
+          <input type="checkbox" id="show-venture-btn-toggle" checked>
+          <span class="custom-slider"></span>
+        </label>
+      </div>
+      <div style="color: #666; font-size: 0.9em;">When enabled, the "Add Venture" button will be visible in the Ventures sidebar.</div>
+    </div>
+    <div style="margin-bottom: 2rem;">
+      <h4 style="color: #fff; margin-bottom: 1rem; font-size: 1.1rem;">Manage Ventures</h4>
+      <div id="venture-management-list" style="max-height: 200px; overflow-y: auto;"></div>
+      <div style="color: #666; font-size: 0.9em; margin-top: 0.5rem;">Remove ventures you no longer need. This won't delete your session data.</div>
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+      <button type="button" class="btn" style="background: #1a1a1a;" onclick="closeSettingsModal()">Cancel</button>
+      <button type="button" class="btn btn-outline-green" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
 
+<script>
+// Feedback Modal Functions
+function openFeedbackModal() {
+  document.getElementById('feedbackModal').style.display = 'flex';
+  document.getElementById('feedbackForm').reset();
+  document.getElementById('significanceGuide').textContent = '';
+}
+function closeFeedbackModal() {
+  document.getElementById('feedbackModal').style.display = 'none';
+}
+document.getElementById('feedbackType').addEventListener('change', function() { updateSignificanceGuide(); });
+document.getElementById('significance').addEventListener('change', function() { updateSignificanceGuide(); });
+function updateSignificanceGuide() {
+  const feedbackType = document.getElementById('feedbackType').value;
+  const significance = document.getElementById('significance').value;
+  const guide = document.getElementById('significanceGuide');
+  if (!feedbackType || !significance) { guide.textContent = ''; return; }
+  const guides = {
+    'Bug Report': {
+      '1': 'Minor visual issue or typo',
+      '2': 'Small functionality issue',
+      '3': 'Moderate bug affecting some users',
+      '4': 'Major bug affecting many users',
+      '5': 'Site-breaking bug or security issue'
+    },
+    'Feature Request': {
+      '1': 'Nice-to-have enhancement',
+      '2': 'Small improvement',
+      '3': 'Useful feature for many users',
+      '4': 'Important feature that would improve the site significantly',
+      '5': 'Would make the site amazing - game-changing feature'
+    }
+  };
+  guide.textContent = guides[feedbackType][significance] || '';
+}
+async function submitFeedback(event) {
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const submitButton = event.target.querySelector('button[type="submit"]');
+  const originalText = submitButton.textContent;
+  submitButton.disabled = true;
+  submitButton.textContent = 'Submitting...';
+  try {
+    const response = await fetch('/submit_feedback', { method: 'POST', body: formData });
+    const result = await response.json();
+    if (result.success) {
+      alert('Thank you for your feedback! We\'ll review it and get back to you soon.');
+      closeFeedbackModal();
+    } else {
+      alert('Error submitting feedback: ' + result.message);
+    }
+  } catch (error) {
+    alert('Error submitting feedback. Please try again.');
+    console.error('Feedback submission error:', error);
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = originalText;
+  }
+}
+// Settings Modal Functions
+function openSettingsModal() {
+  const modal = document.getElementById('settingsModal');
+  if (!modal) { return; }
+  modal.style.display = 'flex';
+  const showVentureBtn = localStorage.getItem('showVentureBtn') !== 'false';
+  const toggle = document.getElementById('show-venture-btn-toggle');
+  if (toggle) { toggle.checked = showVentureBtn; }
+  updateVentureButtonVisibility(showVentureBtn);
+  loadVenturesForManagement();
+}
+function closeSettingsModal() {
+  const modal = document.getElementById('settingsModal');
+  if (modal) { modal.style.display = 'none'; }
+}
+function saveSettings() {
+  const showVentureBtn = document.getElementById('show-venture-btn-toggle').checked;
+  localStorage.setItem('showVentureBtn', showVentureBtn);
+  updateVentureButtonVisibility(showVentureBtn);
+  closeSettingsModal();
+}
+function updateVentureButtonVisibility(show) {
+  const addVentureSection = document.getElementById('add-venture-section');
+  if (addVentureSection) { addVentureSection.style.display = show ? 'block' : 'none'; }
+}
+async function loadVenturesForManagement() {
+  try {
+    const response = await fetch('/api/user_ventures');
+    const userVentures = await response.json();
+    const ventureList = document.getElementById('venture-management-list');
+    if (!ventureList) return;
+    if (userVentures.length === 0) {
+      ventureList.innerHTML = '<div class="no-ventures">No ventures added yet</div>';
+      return;
+    }
+    ventureList.innerHTML = '';
+    userVentures.forEach(ventureType => {
+      const ventureItem = document.createElement('div');
+      ventureItem.className = 'venture-item';
+      let ventureColor = '#666';
+      if (ventureType === 'Blackjack') ventureColor = '#00ffff';
+      else if (ventureType === 'Poker') ventureColor = '#ff66cc';
+      else if (ventureType === 'Match Play') ventureColor = '#ffaa00';
+      ventureItem.innerHTML = `
+        <div class="venture-info">
+          <div class="venture-color" style="background-color: ${ventureColor};"></div>
+          <span class="venture-name">${ventureType}</span>
+        </div>
+        <button class="delete-venture-btn" onclick="deleteVenture('${ventureType}')">Delete</button>
+      `;
+      ventureList.appendChild(ventureItem);
+    });
+  } catch (error) {
+    console.error('Error loading ventures for management:', error);
+  }
+}
+async function deleteVenture(ventureType) {
+  try {
+    const response = await fetch(`/api/user_ventures/${encodeURIComponent(ventureType)}`, { method: 'DELETE' });
+    const result = await response.json();
+    if (result.success) {
+      const ventureList = document.querySelector('.sidebar ul');
+      if (ventureList) {
+        const ventureItems = ventureList.querySelectorAll('li');
+        ventureItems.forEach(item => { if (item.textContent.trim() === ventureType) { item.remove(); } });
+      }
+      updateSessionFormTypeDropdown();
+      loadVenturesForManagement();
+    }
+  } catch (error) {}
+}
+</script>
 </body>
 </html>

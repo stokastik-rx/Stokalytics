@@ -305,9 +305,9 @@ input[type="submit"] {
 
 .sidebar-title {
   color: #ffffff;
-  font-size: 1.25rem;
-  margin-bottom: 1.5rem;
-  font-family: 'Consola', monospace;
+  font-size: 14px;
+  margin-bottom: 1.2rem;
+  font-family: Consolas, monospace;
 }
 
 .sidebar-link {
@@ -700,9 +700,9 @@ input[type=number]::-webkit-inner-spin-button {
 /* Target only the table inside your edit modal */
 .modal-content table.table {
   /* kill the 700px min-width… */
-  min-width: 0 !important;        /* override .table { min-width:700px; } :contentReference[oaicite:0]{index=0} */
+  min-width: 0 !important;        /* override .table { min-width:700px; } */
   /* allow us to respect individual column widths */
-  table-layout: fixed;            /* otherwise the browser auto-expands all columns :contentReference[oaicite:1]{index=1} */
+  table-layout: fixed;            /* otherwise the browser auto-expands all columns */
   width: auto;                    /* let it size down to your sum of <th> widths */
 }
 
