@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 
+{% block head %}
+  {{ super() }}
+  {% if request.args.get('force_refresh') %}
+    <meta http-equiv="refresh" content="0; url={{ url_for('dashboard') }}">
+  {% endif %}
+{% endblock %}
+
 {% block body_class %}dashboard-page{% endblock %}
 
 {% block content %}
@@ -116,15 +123,27 @@
         </div>
       </div>
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.5rem; font-size: 0.90em; height: auto; min-height: 0;">
-        <h3 class="sidebar-title">All Time Statistics</h3>
-        <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.90em;">
-          <li style="margin-bottom: 0.3em;">Total Hours Played: <span style="color:#00ccff; float:right;">{{ all_time_stats.total_hours }}</span></li>
-          <li style="margin-bottom: 0.3em;">Total Profit: <span style="color:{% if all_time_stats.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ all_time_stats.total_profit }}</span></li>
-          <li style="margin-bottom: 0.3em;">Hourly Rate: <span style="color:{% if all_time_stats.hourly_rate >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ all_time_stats.hourly_rate }}</span></li>
-          <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ all_time_stats.best_session }}</span></li>
-          <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ all_time_stats.worst_session }}</span></li>
-          <li style="margin-bottom: 0.3em;">Comps Realized: <span style="color:#ffaa00; float:right;">${{ all_time_stats.comps_realized }}</span></li>
-        </ul>
+        {% if single_venture_mode %}
+          <h3 class="sidebar-title">{{ single_venture_type }} Statistics</h3>
+          <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.90em;">
+            {% for key, value in venture_stats.items() %}
+              <li style="margin-bottom: 0.3em;">
+                {{ key.replace('_', ' ').title() }}:
+                <span style="color:#00ccff; float:right;">{{ value }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <h3 class="sidebar-title">All Time Statistics</h3>
+          <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.90em;">
+            <li style="margin-bottom: 0.3em;">Total Hours Played: <span style="color:#00ccff; float:right;">{{ all_time_stats.total_hours }}</span></li>
+            <li style="margin-bottom: 0.3em;">Total Profit: <span style="color:{% if all_time_stats.total_profit >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ all_time_stats.total_profit }}</span></li>
+            <li style="margin-bottom: 0.3em;">Hourly Rate: <span style="color:{% if all_time_stats.hourly_rate >= 0 %}#00ff99{% else %}#ff4444{% endif %}; float:right;">${{ all_time_stats.hourly_rate }}</span></li>
+            <li style="margin-bottom: 0.3em;">Best Session: <span style="color:#00ff99; float:right;">${{ all_time_stats.best_session }}</span></li>
+            <li style="margin-bottom: 0.3em;">Worst Session: <span style="color:#ff4444; float:right;">${{ all_time_stats.worst_session }}</span></li>
+            <li style="margin-bottom: 0.3em;">Comps Realized: <span style="color:#ffaa00; float:right;">${{ all_time_stats.comps_realized }}</span></li>
+          </ul>
+        {% endif %}
         <div style="margin-top: 1.2em; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <div style="color: #ccc; font-size: 0.97em; text-align: center; margin-bottom: 0.5em;">Include Tips in PnL</div>
           <label class="custom-slider-switch">
@@ -135,12 +154,22 @@
       </div>
       <!-- Personal Bests Panel -->
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.2rem; font-size: 0.89em; height: auto; min-height: 0;">
-        <h3 class="sidebar-title">Personal Bests</h3>
-        <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.89em;">
-          <li style="margin-bottom: 0.3em;">Longest Winning Streak: <span style="color:#00ff99; float:right;">{{ personal_bests.longest_streak }}</span></li>
-          <li style="margin-bottom: 0.3em;">Most Profitable Day: <span style="color:#00ff99; float:right;">${{ personal_bests.most_profitable_day[1] }}</span></li>
-          <li style="margin-bottom: 0.3em;">Longest Session: <span style="color:#00ccff; float:right;">{{ personal_bests.longest_session }}h</span></li>
-        </ul>
+        {% if single_venture_mode %}
+          <h3 class="sidebar-title">Variance Analysis</h3>
+          <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.89em;">
+            <li style="margin-bottom: 0.3em;">Std Dev: <span style="color:#00ccff; float:right;">{{ variance_analysis.stddev|round(2) }}</span></li>
+            <li style="margin-bottom: 0.3em;">Mean: <span style="color:#00ff99; float:right;">{{ variance_analysis.mean|round(2) }}</span></li>
+            <li style="margin-bottom: 0.3em;">Min: <span style="color:#ffaa00; float:right;">{{ variance_analysis.min|round(2) }}</span></li>
+            <li style="margin-bottom: 0.3em;">Max: <span style="color:#ffaa00; float:right;">{{ variance_analysis.max|round(2) }}</span></li>
+          </ul>
+        {% else %}
+          <h3 class="sidebar-title">Personal Bests</h3>
+          <ul style="list-style: none; padding-left: 0; color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 0.89em;">
+            <li style="margin-bottom: 0.3em;">Longest Winning Streak: <span style="color:#00ff99; float:right;">{{ personal_bests.longest_streak }}</span></li>
+            <li style="margin-bottom: 0.3em;">Most Profitable Day: <span style="color:#00ff99; float:right;">${{ personal_bests.most_profitable_day[1] }}</span></li>
+            <li style="margin-bottom: 0.3em;">Longest Session: <span style="color:#00ccff; float:right;">{{ personal_bests.longest_session }}h</span></li>
+          </ul>
+        {% endif %}
       </div>
       <!-- Reminders Panel -->
       <div class="sidebar" style="width: 200px; background-color: #111; padding: 1rem; border-radius: 10px; margin-top: 1.2rem; font-size: 0.89em; position: relative; min-height: 130px;">
@@ -299,19 +328,568 @@
     </style>
     
     <!-- Dashboard Charts -->
-    <div class="dashboard-grid" style="flex: 1;">
-      <!-- Top Row -->
-      <div class="chart chart-wide">
-        <div class="chart-label green">Cumulative Profit (PnL)</div>
-        <canvas id="profitChart"></canvas>
+    {% if single_venture_mode %}
+      <div style="flex: 1; min-width: 0;">
+        {% if single_venture_type == 'Blackjack' %}
+          <!-- Begin: Copied from blackjack.html -->
+          <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+            <div class="chart chart-wide" style="flex: 1; height: 280px;">
+              <div class="chart-label green">Blackjack P/L</div>
+              <canvas id="bjPLChart"></canvas>
+            </div>
+            <div class="chart chart-wide" style="flex: 1; height: 280px;">
+              <div class="chart-label blue">Blackjack Bankroll</div>
+              <canvas id="bjBankrollChart"></canvas>
+            </div>
+          </div>
+          <div style="height: 16px;"></div>
+          <div class="table-wrapper" style="max-height: 260px; overflow-y: auto; margin-top: 0.5rem; overflow-x: auto;">
+            <table class="table" style="min-width: 900px;">
+              <thead>
+                <tr>
+                  <th class="date-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; white-space: nowrap; padding-right: 1.5em;">Date</th>
+                  <th class="change-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width: auto;">Net Change</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Spread</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">System</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Game Rules</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Penetration</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Game Speed</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 80px;">EV</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 70px;">Variance %tile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in records %}
+                <tr data-bj-id="{{ row.id }}" data-spread="{{ row.spread }}" data-gamerules="{{ row.game_rules }}">
+                  <td class="date-col" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1.5em;">{{ row.date.strftime('%m/%d/%Y') }}</td>
+                  <td class="change-col {{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}" style="overflow: hidden; text-overflow: ellipsis;">
+                    <span class="change-amount">${{ "%.2f"|format(row.change) }}</span>
+                  </td>
+                  <td><select class="spread-select styled-select"></select></td>
+                  <td>
+                    <select class="system-select styled-select">
+                      <option value=""></option>
+                      <option value="Hi-Lo" {% if row.system == 'Hi-Lo' %}selected{% endif %}>Hi-Lo</option>
+                      <option value="KO" {% if row.system == 'KO' %}selected{% endif %}>KO</option>
+                      <option value="Omega II" {% if row.system == 'Omega II' %}selected{% endif %}>Omega II</option>
+                      <option value="No Count" {% if row.system == 'No Count' %}selected{% endif %}>No Count</option>
+                    </select>
+                  </td>
+                  <td><select class="gamerule-select styled-select"></select></td>
+                  <td><input type="number" class="penetration-input styled-input" min="0" max="100" maxlength="3" value="{{ row.penetration if row.penetration else 75 }}"></td>
+                  <td><input type="number" class="game-speed-input styled-input" min="0" max="999" maxlength="3" value="{{ row.game_speed if row.game_speed else 100 }}"></td>
+                  <td class="ev-cell">--</td>
+                  <td class="variance-cell">--</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              try {
+                const bjChartData = {{ bj_chart|tojson|safe }};
+                const bjBankrollData = {{ bj_bankroll|tojson|safe }};
+                const bjPLXVals = bjChartData.map(d => d.x);
+                const bjPLXMin = Math.min(...bjPLXVals);
+                const bjPLXMax = Math.max(...bjPLXVals);
+                new Chart(document.getElementById('bjPLChart').getContext('2d'), {
+                  type: 'line',
+                  data: {
+                    datasets: [{
+                      label: '',
+                      data: bjChartData && bjChartData.length > 0 ? bjChartData : [{ x: 0, y: 0 }],
+                      parsing: false,
+                      borderColor: '#00ff99',
+                      backgroundColor: 'rgba(0, 255, 153, 0.1)',
+                      borderWidth: 2,
+                      fill: true,
+                      tension: 0.1
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        titleFont: {
+                          family: '"JetBrains Mono", monospace',
+                          size: 12,
+                          weight: '600'
+                        },
+                        bodyFont: {
+                          family: '"JetBrains Mono", monospace',
+                          size: 12,
+                          weight: '400'
+                        },
+                        callbacks: {
+                          label: function (context) {
+                            return `$${context.parsed.y.toLocaleString()}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        type: 'linear',
+                        min: bjPLXMin,
+                        max: bjPLXMax,
+                        title: {
+                          display: true,
+                          text: 'Hours',
+                          color: '#aaa',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        grid: { color: '#333' }
+                      },
+                      y: {
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 },
+                          callback: function (value) {
+                            return `$${value.toLocaleString()}`;
+                          }
+                        },
+                        grid: { color: '#333' }
+                      }
+                    }
+                  }
+                });
+                const bjBankrollXVals = bjBankrollData.map(d => new Date(d.x).getTime());
+                const bjBankrollXMin = Math.min(...bjBankrollXVals);
+                const bjBankrollXMax = Math.max(...bjBankrollXVals);
+                new Chart(document.getElementById('bjBankrollChart').getContext('2d'), {
+                  type: 'line',
+                  data: {
+                    datasets: [{
+                      label: '',
+                      data: bjBankrollData && bjBankrollData.length > 0 ? [{ x: bjBankrollData[0].x, y: 0 }, ...bjBankrollData] : [{ x: new Date().toISOString().split('T')[0], y: 0 }],
+                      borderColor: '#00ccff',
+                      backgroundColor: 'rgba(0, 204, 255, 0.1)',
+                      borderWidth: 2,
+                      fill: true,
+                      tension: 0.1
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: function (context) {
+                            return `$${context.parsed.y.toLocaleString()}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        type: 'time',
+                        min: new Date(bjBankrollXMin),
+                        max: new Date(bjBankrollXMax),
+                        time: { unit: 'day' },
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        grid: { color: '#333' }
+                      },
+                      y: {
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 },
+                          callback: function (value) {
+                            return `$${value.toLocaleString()}`;
+                          }
+                        },
+                        grid: { color: '#333' }
+                      }
+                    }
+                  }
+                });
+              } catch (e) { console.error('Blackjack chart error:', e); }
+            });
+          </script>
+          <!-- End: Copied from blackjack.html -->
+        {% elif single_venture_type == 'Poker' %}
+          <!-- Begin: Copied from poker.html -->
+          <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+            <div class="chart chart-wide" style="flex: 1; height: 280px;">
+              <div class="chart-label green">Poker P/L</div>
+              <canvas id="pokerPLChart"></canvas>
+            </div>
+            <div class="chart chart-wide" style="flex: 1; height: 280px;">
+              <div class="chart-label blue">Poker Bankroll</div>
+              <canvas id="pokerBankrollChart"></canvas>
+            </div>
+          </div>
+          <div style="height: 16px;"></div>
+          <div class="table-wrapper" style="max-height: 260px; overflow-y: auto; margin-top: 0.5rem; overflow-x: auto;">
+            <table class="table" style="min-width: 900px;">
+              <thead>
+                <tr>
+                  <th class="date-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; white-space: nowrap; padding-right: 1.5em;">Date</th>
+                  <th class="change-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width: auto;">Net Change</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Stakes</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Softness</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Focus</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Game Speed</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">BB/hr</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">BB/100</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Swing Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in records %}
+                <tr data-poker-id="{{ row.id }}" data-stakes="{{ row.stakes }}">
+                  <td class="date-col" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1.5em;">{{ row.date.strftime('%m/%d/%Y') }}</td>
+                  <td class="change-col {{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}" style="overflow: hidden; text-overflow: ellipsis;">
+                    <span class="change-amount">${{ "%.2f"|format(row.change) }}</span>
+                  </td>
+                  <td><select class="stakes-select styled-select"></select></td>
+                  <td>
+                    <select class="softness-select styled-select">
+                      <option value=""></option>
+                      <option value="1" {% if row.softness == 1 %}selected{% endif %}>1 - Soft</option>
+                      <option value="2" {% if row.softness == 2 %}selected{% endif %}>2</option>
+                      <option value="3" {% if row.softness == 3 %}selected{% endif %}>3</option>
+                      <option value="4" {% if row.softness == 4 %}selected{% endif %}>4</option>
+                      <option value="5" {% if row.softness == 5 %}selected{% endif %}>5 - Sweaty</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select class="focus-select styled-select">
+                      <option value=""></option>
+                      <option value="1" {% if row.focus == 1 %}selected{% endif %}>1 - Tilted</option>
+                      <option value="2" {% if row.focus == 2 %}selected{% endif %}>2</option>
+                      <option value="3" {% if row.focus == 3 %}selected{% endif %}>3 - Average</option>
+                      <option value="4" {% if row.focus == 4 %}selected{% endif %}>4</option>
+                      <option value="5" {% if row.focus == 5 %}selected{% endif %}>5 - Locked In</option>
+                    </select>
+                  </td>
+                  <td><input type="number" class="game-speed-input styled-input" min="0" max="999" maxlength="3" value="{{ row.game_speed if row.game_speed else 30 }}"></td>
+                  <td class="bbhr-cell">
+                    {% if row.duration_hours and row.stakes and row.stakes|float > 0 %}
+                      {{ '%.2f'|format(row.change / (row.stakes|float) / row.duration_hours) }}
+                    {% else %}
+                      --
+                    {% endif %}
+                  </td>
+                  <td class="bb100-cell">
+                    {% if row.stakes and row.stakes|float > 0 %}
+                      {{ '%.2f'|format(row.change / (row.stakes|float) * 100) }}
+                    {% else %}
+                      --
+                    {% endif %}
+                  </td>
+                  <td class="swing-score-cell">--</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              try {
+                const pokerPLData = {{ poker_chart | tojson }};
+                const pokerPLCtx = document.getElementById('pokerPLChart').getContext('2d');
+                const pokerPLXVals = pokerPLData.map(d => d.x);
+                const pokerPLXMin = Math.min(...pokerPLXVals);
+                const pokerPLXMax = Math.max(...pokerPLXVals);
+                new Chart(pokerPLCtx, {
+                  type: 'line',
+                  data: {
+                    datasets: [{
+                      label: '',
+                      data: pokerPLData,
+                      borderColor: '#00ff99',
+                      backgroundColor: 'rgba(0, 255, 153, 0.1)',
+                      borderWidth: 2,
+                      fill: true,
+                      tension: 0.1
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        titleFont: {
+                          family: '"JetBrains Mono", monospace',
+                          size: 12,
+                          weight: '600'
+                        },
+                        bodyFont: {
+                          family: '"JetBrains Mono", monospace',
+                          size: 12,
+                          weight: '400'
+                        },
+                        callbacks: {
+                          label: function (context) {
+                            return `$${context.parsed.y.toLocaleString()}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        type: 'linear',
+                        min: pokerPLXMin,
+                        max: pokerPLXMax,
+                        title: {
+                          display: true,
+                          text: 'Hours',
+                          color: '#aaa',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        grid: { color: '#333' }
+                      },
+                      y: {
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 },
+                          callback: function (value) {
+                            return `$${value.toLocaleString()}`;
+                          }
+                        },
+                        grid: { color: '#333' }
+                      }
+                    }
+                  }
+                });
+                const pokerBankrollData = {{ poker_bankroll | tojson }};
+                const pokerBankrollCtx = document.getElementById('pokerBankrollChart').getContext('2d');
+                const pokerBankrollXVals = pokerBankrollData.map(d => new Date(d.x).getTime());
+                const pokerBankrollXMin = Math.min(...pokerBankrollXVals);
+                const pokerBankrollXMax = Math.max(...pokerBankrollXVals);
+                new Chart(pokerBankrollCtx, {
+                  type: 'line',
+                  data: {
+                    datasets: [{
+                      label: '',
+                      data: pokerBankrollData,
+                      borderColor: '#00ccff',
+                      backgroundColor: 'rgba(0, 204, 255, 0.1)',
+                      borderWidth: 2,
+                      fill: true,
+                      tension: 0.1
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: function (context) {
+                            return `$${context.parsed.y.toLocaleString()}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        type: 'time',
+                        min: new Date(pokerBankrollXMin),
+                        max: new Date(pokerBankrollXMax),
+                        time: { unit: 'day' },
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        grid: { color: '#333' }
+                      },
+                      y: {
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 },
+                          callback: function (value) {
+                            return `$${value.toLocaleString()}`;
+                          }
+                        },
+                        grid: { color: '#333' }
+                      }
+                    }
+                  }
+                });
+              } catch (e) { console.error('Poker chart error:', e); }
+            });
+          </script>
+          <!-- End: Copied from poker.html -->
+        {% elif single_venture_type == 'Match Play' %}
+          <!-- Begin: Copied from matchplay.html -->
+          <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+            <div class="chart chart-wide" style="flex: 1; height: 280px;">
+              <div class="chart-label green">Match Play P/L</div>
+              <canvas id="mpPLChart"></canvas>
+            </div>
+          </div>
+          <div style="height: 16px;"></div>
+          <div class="table-wrapper" style="max-height: 260px; overflow-y: auto; margin-top: 0.5rem; overflow-x: auto;">
+            <table class="table" style="min-width: 900px;">
+              <thead>
+                <tr>
+                  <th class="date-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; white-space: nowrap; padding-right: 1.5em;">Date</th>
+                  <th class="change-col" style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; width: auto;">Net Change</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Promo Type</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Promo Value</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 100px;">Casino</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Game Type</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 90px;">Success</th>
+                  <th style="position: sticky; top: 0; background: #1a1a1a; z-index: 2; min-width: 80px;">ROI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in records %}
+                <tr data-mp-id="{{ row.id }}" data-promo-type="{{ row.promo_type }}">
+                  <td class="date-col" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1.5em;">{{ row.date.strftime('%m/%d/%Y') }}</td>
+                  <td class="change-col {{ 'positive' if row.change > 0 else 'negative' if row.change < 0 else '' }}" style="overflow: hidden; text-overflow: ellipsis;">
+                    <span class="change-amount">${{ "%.2f"|format(row.change) }}</span>
+                  </td>
+                  <td><select class="promo-type-select styled-select"></select></td>
+                  <td><input type="number" class="promo-value-input styled-input" min="0" max="9999" step="0.01" value="{{ row.promo_value if row.promo_value else 0 }}"></td>
+                  <td><input type="text" class="casino-input styled-input" value="{{ row.casino if row.casino else '' }}"></td>
+                  <td>
+                    <select class="game-type-select styled-select">
+                      <option value=""></option>
+                      <option value="Blackjack" {% if row.game_type == 'Blackjack' %}selected{% endif %}>Blackjack</option>
+                      <option value="Poker" {% if row.game_type == 'Poker' %}selected{% endif %}>Poker</option>
+                      <option value="Slots" {% if row.game_type == 'Slots' %}selected{% endif %}>Slots</option>
+                      <option value="Other" {% if row.game_type == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select class="success-select styled-select">
+                      <option value=""></option>
+                      <option value="Yes" {% if row.success == 'Yes' %}selected{% endif %}>Yes</option>
+                      <option value="No" {% if row.success == 'No' %}selected{% endif %}>No</option>
+                    </select>
+                  </td>
+                  <td class="roi-cell">
+                    {% if row.promo_value and row.promo_value > 0 %}
+                      {{ '%.1f'|format((row.change / row.promo_value) * 100) }}%
+                    {% else %}
+                      --
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              try {
+                const mpPLData = {{ mp_chart | tojson }};
+                const mpPLCtx = document.getElementById('mpPLChart').getContext('2d');
+                const mpPLXVals = mpPLData.map(d => new Date(d.x).getTime());
+                const mpPLXMin = Math.min(...mpPLXVals);
+                const mpPLXMax = Math.max(...mpPLXVals);
+                new Chart(mpPLCtx, {
+                  type: 'line',
+                  data: {
+                    datasets: [{
+                      label: '',
+                      data: mpPLData,
+                      borderColor: '#00ff99',
+                      backgroundColor: 'rgba(0, 255, 153, 0.1)',
+                      borderWidth: 2,
+                      fill: true,
+                      tension: 0.1
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        titleFont: {
+                          family: '"JetBrains Mono", monospace',
+                          size: 12,
+                          weight: '600'
+                        },
+                        bodyFont: {
+                          family: '"JetBrains Mono", monospace',
+                          size: 12,
+                          weight: '400'
+                        },
+                        callbacks: {
+                          label: function (context) {
+                            return `$${context.parsed.y.toLocaleString()}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        type: 'time',
+                        min: new Date(mpPLXMin),
+                        max: new Date(mpPLXMax),
+                        time: { unit: 'day' },
+                        title: {
+                          display: true,
+                          text: 'Date',
+                          color: '#aaa',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 }
+                        },
+                        grid: { color: '#333' }
+                      },
+                      y: {
+                        ticks: {
+                          color: '#ffffff',
+                          font: { family: '"JetBrains Mono", monospace', size: 11 },
+                          callback: function (value) {
+                            return `$${value.toLocaleString()}`;
+                          }
+                        },
+                        grid: { color: '#333' }
+                      }
+                    }
+                  }
+                });
+              } catch (e) { console.error('Match Play chart error:', e); }
+            });
+          </script>
+          <!-- End: Copied from matchplay.html -->
+        {% endif %}
       </div>
-      <div class="chart chart-wide">
-        <div class="chart-label blue">Total Bankroll by Date</div>
-        <canvas id="combinedBankrollChart"></canvas>
+    {% else %}
+      <div class="dashboard-grid" style="flex: 1;">
+        <!-- Top Row -->
+        <div class="chart chart-wide">
+          <div class="chart-label green">Cumulative Profit (PnL)</div>
+          <canvas id="profitChart"></canvas>
+        </div>
+        <div class="chart chart-wide">
+          <div class="chart-label blue">Total Bankroll by Date</div>
+          <canvas id="combinedBankrollChart"></canvas>
+        </div>
+        <!-- Bottom Row: Venture Charts (each appended as a .chart.chart-narrow) -->
+        <div id="ventureCharts" class="venture-grid"></div>
       </div>
-      <!-- Bottom Row: Venture Charts (each appended as a .chart.chart-narrow) -->
-      <div id="ventureCharts" class="venture-grid"></div>
-    </div>
+    {% endif %}
   </div>
 
 </div> <!-- End of .container or main content -->

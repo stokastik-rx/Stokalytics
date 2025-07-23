@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, current_app, jsonify
+from flask import Flask, render_template, request, redirect, url_for, current_app, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
@@ -270,8 +270,332 @@ def dashboard():
         'most_profitable_day': most_profitable_day,
         'longest_session': round(longest_session, 2)
     }
+
+    # === Single Venture Mode Detection (MOVED HERE) ===
+    single_venture_mode = len(unique_types) == 1
+    single_venture_type = unique_types[0] if single_venture_mode else None
+    venture_stats = None
+    variance_analysis = None
+    # Add these for chart/table data
+    records = None
+    bj_chart = None
+    bj_bankroll = None
+    poker_chart = None
+    poker_bankroll = None
+    mp_chart = None
+
+    if single_venture_mode:
+        venture = single_venture_type
+        # Always query sessions for this user and venture, ordered by date and time (most recent first)
+        venture_sessions = SessionRecord.query.filter_by(user_id=current_user.id, type=venture).order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc()).all()
+        if venture == 'Poker':
+            poker_sessions = venture_sessions
+            total_sessions = len(poker_sessions)
+            total_hours = 0.0
+            total_profit = 0.0
+            best_session = float('-inf')
+            worst_session = float('inf')
+            profits = []
+            records = []
+            for s in poker_sessions:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                profits.append(profit)
+                # Calculate duration in hours
+                if s.time_in and s.time_out:
+                    duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    if duration_hours > 0:
+                        hourly_rate = profit / duration_hours
+                    else:
+                        hourly_rate = None
+                else:
+                    duration_hours = None
+                    hourly_rate = None
+                records.append({
+                    'id': s.id,
+                    'date': s.date,
+                    'change': profit,
+                    'source': 'session',
+                    'duration_hours': duration_hours,
+                    'hourly_rate': hourly_rate,
+                    'stakes': getattr(s, 'stakes', ''),
+                    'softness': getattr(s, 'softness', None),
+                    'focus': getattr(s, 'focus', None),
+                    'game_speed': getattr(s, 'game_speed', None)
+                })
+                if s.time_in and s.time_out:
+                    duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    total_hours += duration
+                if profit > best_session:
+                    best_session = profit
+                if profit < worst_session:
+                    worst_session = profit
+                total_profit += profit
+            if total_sessions == 0:
+                best_session = 0.0
+                worst_session = 0.0
+            venture_stats = {
+                'total_sessions': total_sessions,
+                'total_hours': total_hours,
+                'total_profit': total_profit,
+                'best_session': best_session,
+                'worst_session': worst_session
+            }
+            # Variance analysis: stddev of profits
+            if profits:
+                import numpy as np
+                variance_analysis = {
+                    'stddev': float(np.std(profits)),
+                    'mean': float(np.mean(profits)),
+                    'min': float(np.min(profits)),
+                    'max': float(np.max(profits))
+                }
+            else:
+                variance_analysis = {'stddev': 0.0, 'mean': 0.0, 'min': 0.0, 'max': 0.0}
+            # Poker P/L chart (cumulative profit over time)
+            sessions_chrono = list(reversed(poker_sessions))
+            poker_chart = []
+            cumulative = 0
+            hours = 0
+            for s in sessions_chrono:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                cumulative += profit
+                if s.time_in and s.time_out:
+                    duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    hours += duration
+                poker_chart.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
+            if not poker_chart or poker_chart[0]['x'] != 0:
+                poker_chart = [{'x': 0, 'y': 0}] + poker_chart
+            # Poker Bankroll chart (from ledger and sessions)
+            ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Poker').order_by(LedgerRecord.date).all()
+            combined = []
+            for s in sessions_chrono:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                combined.append({'date': s.date, 'change': profit})
+            for l in ledger_rows:
+                combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
+            combined.sort(key=lambda x: x['date'])
+            poker_bankroll = []
+            bankroll = 0
+            for item in combined:
+                bankroll += item['change']
+                poker_bankroll.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
+        elif venture == 'Match Play':
+            mp_sessions = venture_sessions
+            total_sessions = len(mp_sessions)
+            total_hours = 0.0
+            total_profit = 0.0
+            best_session = float('-inf')
+            worst_session = float('inf')
+            total_promos = 0
+            total_promo_value = 0.0
+            successful_sessions = 0
+            profits = []
+            records = []
+            for s in mp_sessions:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                profits.append(profit)
+                if s.time_in and s.time_out:
+                    duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    if duration_hours > 0:
+                        hourly_rate = profit / duration_hours
+                    else:
+                        hourly_rate = None
+                else:
+                    duration_hours = None
+                    hourly_rate = None
+                promo_value = getattr(s, 'promo_value', 0) or 0
+                promo_type = getattr(s, 'promo_type', '') or ''
+                casino = getattr(s, 'casino', '') or ''
+                game_type = getattr(s, 'game_type', '') or ''
+                success = 'Yes' if profit > 0 else 'No'
+                records.append({
+                    'id': s.id,
+                    'date': s.date,
+                    'change': profit,
+                    'source': 'session',
+                    'promo_value': promo_value,
+                    'promo_type': promo_type,
+                    'casino': casino,
+                    'game_type': game_type,
+                    'success': success,
+                    'duration_hours': duration_hours,
+                    'hourly_rate': hourly_rate
+                })
+                if s.time_in and s.time_out:
+                    duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    total_hours += duration
+                if profit > best_session:
+                    best_session = profit
+                if profit < worst_session:
+                    worst_session = profit
+                total_profit += profit
+                if promo_value > 0:
+                    total_promos += 1
+                    total_promo_value += promo_value
+                if profit > 0:
+                    successful_sessions += 1
+            if total_sessions == 0:
+                best_session = 0.0
+                worst_session = 0.0
+                avg_promo_value = 0.0
+                success_rate = 0.0
+            else:
+                avg_promo_value = total_promo_value / total_promos if total_promos > 0 else 0.0
+                success_rate = (successful_sessions / total_sessions) * 100
+            venture_stats = {
+                'total_sessions': total_sessions,
+                'total_hours': total_hours,
+                'total_profit': total_profit,
+                'best_session': best_session,
+                'worst_session': worst_session,
+                'total_promos': total_promos,
+                'avg_promo_value': avg_promo_value,
+                'success_rate': success_rate
+            }
+            # Variance analysis: stddev of profits
+            if profits:
+                import numpy as np
+                variance_analysis = {
+                    'stddev': float(np.std(profits)),
+                    'mean': float(np.mean(profits)),
+                    'min': float(np.min(profits)),
+                    'max': float(np.max(profits))
+                }
+            else:
+                variance_analysis = {'stddev': 0.0, 'mean': 0.0, 'min': 0.0, 'max': 0.0}
+            # Match Play P/L chart (cumulative profit over time by date)
+            sessions_chrono = list(reversed(mp_sessions))
+            mp_chart = []
+            cumulative = 0
+            for s in sessions_chrono:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                cumulative += profit
+                mp_chart.append({'x': s.date.isoformat(), 'y': round(cumulative, 2)})
+            if not mp_chart:
+                from datetime import datetime as dt
+                mp_chart = [{'x': dt.now().date().isoformat(), 'y': 0}]
+        elif venture == 'Blackjack':
+            from logs import BlackjackSession
+            # Query all Blackjack sessions for this user, ordered by date and time (most recent first)
+            bj_sessions = (
+                db.session.query(SessionRecord, BlackjackSession)
+                .join(BlackjackSession, BlackjackSession.session_id == SessionRecord.id)
+                .filter(SessionRecord.user_id == current_user.id, SessionRecord.type == 'Blackjack')
+                .order_by(SessionRecord.date.desc(), SessionRecord.time_in.desc())
+                .all()
+            )
+            total_sessions = 0
+            total_hours = 0.0
+            total_profit = 0.0
+            best_session = float('-inf')
+            worst_session = float('inf')
+            profits = []
+            records = []
+            for s, bj in bj_sessions:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                profits.append(profit)
+                if s.time_in and s.time_out:
+                    duration_hours = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    if duration_hours > 0:
+                        hourly_rate = profit / duration_hours
+                    else:
+                        hourly_rate = None
+                else:
+                    duration_hours = None
+                    hourly_rate = None
+                records.append({
+                    'id': bj.id,
+                    'date': s.date,
+                    'change': profit,
+                    'source': 'session',
+                    'spread': bj.spread or '',
+                    'game_speed': bj.game_speed or '',
+                    'game_rules': bj.game_rules or '',
+                    'system': bj.system or '',
+                    'duration_hours': duration_hours,
+                    'hourly_rate': hourly_rate,
+                    'penetration': getattr(s, 'penetration', 75)
+                })
+                if s.time_in and s.time_out:
+                    duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    total_hours += duration
+                if profit > best_session:
+                    best_session = profit
+                if profit < worst_session:
+                    worst_session = profit
+                total_profit += profit
+                total_sessions += 1
+            if total_sessions == 0:
+                best_session = 0.0
+                worst_session = 0.0
+            venture_stats = {
+                'total_sessions': total_sessions,
+                'total_hours': total_hours,
+                'total_profit': total_profit,
+                'best_session': best_session,
+                'worst_session': worst_session
+            }
+            # Variance analysis: stddev of profits
+            if profits:
+                import numpy as np
+                variance_analysis = {
+                    'stddev': float(np.std(profits)),
+                    'mean': float(np.mean(profits)),
+                    'min': float(np.min(profits)),
+                    'max': float(np.max(profits))
+                }
+            else:
+                variance_analysis = {'stddev': 0.0, 'mean': 0.0, 'min': 0.0, 'max': 0.0}
+            # Blackjack P/L chart (cumulative profit over time)
+            sessions_chrono = list(reversed(bj_sessions))
+            bj_chart = []
+            cumulative = 0
+            hours = 0
+            for s, bj in sessions_chrono:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                cumulative += profit
+                if s.time_in and s.time_out:
+                    duration = (datetime.combine(s.date, s.time_out) - datetime.combine(s.date, s.time_in)).total_seconds() / 3600
+                    hours += duration
+                bj_chart.append({'x': round(hours, 2), 'y': round(cumulative, 2)})
+            if not bj_chart or bj_chart[0]['x'] != 0:
+                bj_chart = [{'x': 0, 'y': 0}] + bj_chart
+            # Blackjack Bankroll chart (from ledger and sessions)
+            ledger_rows = LedgerRecord.query.filter_by(user_id=current_user.id, venture='Blackjack').order_by(LedgerRecord.date).all()
+            combined = []
+            for s, bj in sessions_chrono:
+                profit = (s.money_out or 0) - (s.money_in or 0)
+                if tips_included:
+                    profit += (s.tips or 0)
+                combined.append({'date': s.date, 'change': profit})
+            for l in ledger_rows:
+                combined.append({'date': l.date, 'change': (l.withdrawal or 0) - (l.deposit or 0)})
+            combined.sort(key=lambda x: x['date'])
+            bj_bankroll = []
+            bankroll = 0
+            for item in combined:
+                bankroll += item['change']
+                bj_bankroll.append({'x': item['date'].isoformat(), 'y': round(bankroll, 2)})
+
+    # ... rest of the dashboard logic ...
+    # (keep all_time_stats, personal_bests, etc. for multi-venture users)
+    # ...
     reminders = []  # Placeholder for reminders, can be filled in the template or by user
-    return render_template(
+    rendered = render_template(
         'dashboard.html',
         chart_data=chart_points,
         unique_types=unique_types,
@@ -281,8 +605,23 @@ def dashboard():
         all_time_stats=all_time_stats,
         personal_bests=personal_bests,
         reminders=reminders,
-        tips_included=tips_included
+        tips_included=tips_included,
+        single_venture_mode=single_venture_mode,
+        single_venture_type=single_venture_type,
+        venture_stats=venture_stats,
+        variance_analysis=variance_analysis,
+        records=records,
+        bj_chart=bj_chart,
+        bj_bankroll=bj_bankroll,
+        poker_chart=poker_chart,
+        poker_bankroll=poker_bankroll,
+        mp_chart=mp_chart
     )
+    response = make_response(rendered)
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 
@@ -577,7 +916,10 @@ def add_session():
     except Exception as e:
         print("Error adding session:", e)
 
-    return redirect(url_for('dashboard'))
+    from datetime import datetime as dt
+    timestamp = dt.now().strftime('%Y%m%d%H%M%S')
+    # Add a force_refresh param to trigger a meta refresh on the dashboard
+    return redirect(url_for('dashboard', _t=timestamp, force_refresh=1))
 
 
 
@@ -728,8 +1070,10 @@ def view_banking():
     # Net change per bank (deposits - withdrawals)
     from collections import defaultdict
     bank_balances = defaultdict(float)
+    bank_venture_balances = defaultdict(lambda: defaultdict(float))
     for entry in ledger:
         bank_balances[entry.account] += (entry.deposit or 0) - (entry.withdrawal or 0)
+        bank_venture_balances[entry.account][entry.venture] += (entry.deposit or 0) - (entry.withdrawal or 0)
 
     return render_template(
         'banking.html',
@@ -740,6 +1084,7 @@ def view_banking():
         ventureChartData=chart_data,
         bankroll_totals=bankroll_totals,
         bank_balances=bank_balances,
+        bank_venture_balances=bank_venture_balances,
         datetime=datetime,
         total_bankroll_with_vault=total_bankroll_with_vault,
         total_cash_on_hand=total_cash_on_hand,

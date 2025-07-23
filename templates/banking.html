@@ -127,9 +127,20 @@
           {% endfor %}
           <li style="padding: 0.2rem 0 0.2rem 0; color: #fff; font-weight: bold; letter-spacing: 0.5px; text-decoration: underline;">Banks</li>
           {% for bank, value in bank_balances.items() %}
-            <li style="padding: 0.28rem 0; display: flex; justify-content: space-between; align-items: center;">
-              <strong style="color: {{ bank_colors[bank] }};">{{ bank }}</strong>
-              <span style="color: {{ value >= 0 and '#00ff99' or '#ff4444' }}; font-weight: bold; min-width: 80px; text-align: right;">${{ '%.2f'|format(value) }}</span>
+            <li style="padding: 0.28rem 0; display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="color: {{ bank_colors[bank] }};">{{ bank }}</strong>
+                <span style="color: {{ value >= 0 and '#00ff99' or '#ff4444' }}; font-weight: bold; min-width: 80px; text-align: right;">${{ '%.2f'|format(value) }}</span>
+              </div>
+              <ul style="list-style: none; padding-left: 1.5em; margin: 0.1em 0 0 0; font-size: 0.92em;">
+                {% for venture in unique_types %}
+                  {% set vbal = bank_venture_balances[bank][venture] %}
+                  <li style="display: flex; justify-content: space-between; align-items: center; opacity: {{ 1 if vbal != 0 else 0.5 }};">
+                    <span style="color: {{ venture_colors.get(venture, '#00ff99') }};">{{ venture }}</span>
+                    <span style="color: {{ vbal >= 0 and '#00ff99' or '#ff4444' }}; font-weight: bold; min-width: 60px; text-align: right;">${{ '%.2f'|format(vbal) }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
             </li>
           {% endfor %}
         </ul>
