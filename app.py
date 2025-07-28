@@ -112,7 +112,14 @@ def dashboard():
     from collections import defaultdict
     from datetime import datetime
     from logs import SessionRecord, LedSessRecord
-    sync_ledsess()  # Always update LedSess before rendering dashboard
+    
+    # Force a fresh database session to ensure we get the latest data
+    db.session.close()
+    db.session.remove()
+    
+    # Sync all necessary data like the venture-specific pages do
+    sync_ledsess()
+    sync_blackjack_sessions()
 
     tips_included = request.args.get('tips_included', '0') == '1'
 
@@ -910,18 +917,18 @@ def add_session():
         )
 
         db.session.add(new_session)
+        db.session.flush()  # Flush to ensure the session is available for queries
         db.session.commit()
         sync_ledsess()
 
     except Exception as e:
         print("Error adding session:", e)
+        db.session.rollback()
 
-    from datetime import datetime as dt
-    timestamp = dt.now().strftime('%Y%m%d%H%M%S')
-    # Add a force_refresh param to trigger a meta refresh on the dashboard
-    return redirect(url_for('dashboard', _t=timestamp, force_refresh=1))
-
-
+    # Force a complete refresh by redirecting to logs first, then dashboard
+    from datetime import datetime
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    return redirect(url_for('dashboard', _t=timestamp))
 
 
 
@@ -2461,6 +2468,8 @@ def update_bank_attributes(bank_id):
     bank.is_vault = is_vault
     db.session.commit()
     return jsonify({'success': True, 'is_funding': bank.is_funding, 'is_vault': bank.is_vault})
+
+
 
 
 
